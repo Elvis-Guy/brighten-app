@@ -1,0 +1,33 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// Custom scrollbar for content areas
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+// Custom range input styling for orange color
+input[type="range"].range-orange::-webkit-slider-thumb {
+  background: #f97316; // Tailwind orange-500
+}
+
+input[type="range"].range-orange::-moz-range-thumb {
+  background: #f97316; // Tailwind orange-500
+}
+
