@@ -214,11 +214,13 @@ model/
 - **Optimization:** Apple Silicon (MPS) acceleration
 - **Evaluation:** Comprehensive metrics including FKGL, compression ratio, and success rate
 
-### Performance Metrics
+### Performance Metrics (Currently for initial model)
 - **Flesch-Kincaid Grade Level Improvement:** 5.66 grade levels
 - **Success Rate:** 98.0% (successful simplifications)
 - **Compression Ratio:** 0.51 (average text reduction)
-- **Training Examples:** 748 curated educational examples
+- **Training Examples:** 748 curated educational examples with a plan for a deeper model
+
+
 
 ## 🛡️ Accessibility Features
 
@@ -240,19 +242,8 @@ model/
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines:
+We currently not accepting any contributions from the open source community as this project is a capstone project for academic purposes.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Guidelines
-- Follow TypeScript best practices for frontend code
-- Maintain accessibility standards (WCAG 2.1 AA)
-- Include tests for new features
-- Document ML model changes and performance impacts
 
 ## 📄 License
 
@@ -277,7 +268,7 @@ This project is part of a capstone project for educational purposes.
 
 For questions, issues, or support:
 - Create an issue in this repository
-- Contact: [elvisbakunzi@Elviss-MacBook-Pro.local]
+- Contact: [guyelvisbakunzi@gmail.com](mailto:guyelvisbakunzi@gmail.com)
 
 ---
 
