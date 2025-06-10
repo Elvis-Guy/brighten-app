@@ -1,0 +1,272 @@
+{
+  "summary": {
+    "mean_fkgl_improvement": 5.662382608156432,
+    "mean_compression_ratio": 0.5081197971825221,
+    "success_rate": 98.0,
+    "total_examples_evaluated": 50
+  },
+  "subject_performance": {
+    "general": [
+      13.35683794466403,
+      3.5564705882352925,
+      10.138571428571424,
+      12.650180878552963,
+      2.854444444444443,
+      9.397916666666674,
+      14.822369337979097,
+      6.781612903225806,
+      2.8414479638009027,
+      -1.4445238095238082,
+      3.070888888888888,
+      8.222424242424246,
+      2.2457142857142856,
+      7.413529411764703,
+      3.7950000000000017,
+      3.563188405797103,
+      11.773589743589742,
+      2.511538461538457,
+      7.842475106685633,
+      1.6361375661375668,
+      2.7431372549019635,
+      1.9299999999999997,
+      0.7338095238095228,
+      2.0964102564102554,
+      13.149503546099293,
+      4.634444444444444,
+      2.2952941176470567,
+      2.66714285714286,
+      9.146415711947633,
+      2.2142857142857153
+    ],
+    "mathematics": [
+      10.66760683760684,
+      1.7424324324324303,
+      1.225882352941177,
+      3.77708333333333
+    ],
+    "physics": [
+      3.0607575757575773,
+      6.4860869565217385,
+      4.516111111111115,
+      6.246358543417372
+    ],
+    "chemistry": [
+      6.703183183183178,
+      3.309999999999995,
+      7.150233265720082,
+      2.9101587301587273
+    ],
+    "biology": [
+      7.720731707317071,
+      5.626315789473683,
+      5.160606060606057,
+      7.628235294117648
+    ],
+    "computer_science": [
+      7.160813008130077,
+      5.00714285714286,
+      8.826373626373627,
+      9.552759856630818
+    ]
+  },
+  "reading_level_performance": {
+    "3": [
+      13.35683794466403,
+      3.5564705882352925,
+      12.650180878552963,
+      2.854444444444443,
+      9.397916666666674,
+      2.8414479638009027,
+      3.070888888888888,
+      8.222424242424246,
+      2.2457142857142856,
+      7.413529411764703,
+      3.563188405797103,
+      11.773589743589742,
+      2.511538461538457,
+      7.842475106685633,
+      1.6361375661375668,
+      2.7431372549019635,
+      1.9299999999999997,
+      0.7338095238095228,
+      2.0964102564102554,
+      13.149503546099293,
+      4.634444444444444,
+      2.2952941176470567,
+      9.146415711947633,
+      2.2142857142857153
+    ],
+    "2": [
+      10.138571428571424,
+      14.822369337979097,
+      6.781612903225806,
+      -1.4445238095238082,
+      2.66714285714286,
+      10.66760683760684,
+      1.7424324324324303,
+      1.225882352941177,
+      3.77708333333333,
+      3.0607575757575773,
+      6.4860869565217385,
+      4.516111111111115,
+      6.246358543417372,
+      6.703183183183178,
+      3.309999999999995,
+      7.150233265720082,
+      2.9101587301587273,
+      7.720731707317071,
+      5.626315789473683,
+      5.160606060606057,
+      7.628235294117648,
+      7.160813008130077,
+      5.00714285714286,
+      8.826373626373627,
+      9.552759856630818
+    ],
+    "1": [
+      3.7950000000000017
+    ]
+  },
+  "sample_simplifications": [
+    {
+      "original": "use clear language George Cressler Young (ne\u0301 Jung; August 4, 1916 \u2013 April 24, 2015) was a United States District Judge of the United States District Court for the Northern District of Florida, the United States District Court for the Middle District of Florida and the United States District Court for the Southern District of Florida.",
+      "simplified": "George Cressler Young (n\u00e9 Jung; August 4, 1916 \u2013 April 24, 2015) was a United States District Court for the Northern District of Florida.",
+      "expected": "George Cressler Young (ne\u0301 Jung; August 4, 1916 \u2013 April 24, 2015) was an American lawyer and judge.",
+      "metrics": {
+        "fkgl_improvement": 13.35683794466403,
+        "flesch_improvement": 38.76648221343872,
+        "expected_fkgl_improvement": 15.968449197860963,
+        "expected_flesch_improvement": 46.80379679144383,
+        "compression_ratio": 0.42857142857142855,
+        "subject": "general",
+        "reading_level": 3
+      }
+    },
+    {
+      "original": "use clear language \"\" is an American animated television series created by Michael Dante DiMartino and Bryan Konietzko.",
+      "simplified": "use clear language is a television series created by Michael Dante DiMartino and Bryan Konietzko.",
+      "expected": "In the \"Avatar\" world, there are people who are able to control, or \"bend\", the four elements: \"Air\", \"Water\", \"Earth\", and \"Fire\".",
+      "metrics": {
+        "fkgl_improvement": 3.5564705882352925,
+        "flesch_improvement": 21.935882352941178,
+        "expected_fkgl_improvement": 7.799197860962565,
+        "expected_flesch_improvement": 64.82179144385024,
+        "compression_ratio": 0.8333333333333334,
+        "subject": "general",
+        "reading_level": 3
+      }
+    },
+    {
+      "original": "use simple words and clear sentences GNU GRUB (short for GNU GRand Unified Bootloader, commonly referred to as GRUB) is a boot loader package from the GNU Project.",
+      "simplified": "GNU GRUB is a boot loader from the GNU Project.",
+      "expected": "GNU GRUB (\"GRUB\" for short) is a boot loader package from the GNU Project.",
+      "metrics": {
+        "fkgl_improvement": 10.138571428571424,
+        "flesch_improvement": 40.628571428571405,
+        "expected_fkgl_improvement": 8.409999999999997,
+        "expected_flesch_improvement": 35.359999999999985,
+        "compression_ratio": 0.35714285714285715,
+        "subject": "general",
+        "reading_level": 2
+      }
+    },
+    {
+      "original": "use clear language Grevillea is a diverse genus of about 360 species of evergreen flowering plants in the family Proteaceae, native to rainforest and more open habitats in Australia, New Guinea, New Caledonia, Sulawesi and other Indonesian islands east of the Wallace Line.",
+      "simplified": "Grevillea is a diverse species of evergreen flowering plants.",
+      "expected": "Grevillea is a genus of about 360 species of evergreen flowering plants in the protea family Proteaceae.",
+      "metrics": {
+        "fkgl_improvement": 12.650180878552963,
+        "flesch_improvement": 30.137906976744205,
+        "expected_fkgl_improvement": 10.99554035567715,
+        "expected_flesch_improvement": 32.52378932968537,
+        "compression_ratio": 0.20930232558139536,
+        "subject": "general",
+        "reading_level": 3
+      }
+    },
+    {
+      "original": "use clear language The River Wandle is the largest river of the south southwest sector of London, England.",
+      "simplified": "The River Wandle is a river in London, England.",
+      "expected": "The River Wandle is a river in south-east England.",
+      "metrics": {
+        "fkgl_improvement": 2.854444444444443,
+        "flesch_improvement": 4.4350000000000165,
+        "expected_fkgl_improvement": 2.854444444444443,
+        "expected_flesch_improvement": 4.4350000000000165,
+        "compression_ratio": 0.5,
+        "subject": "general",
+        "reading_level": 3
+      }
+    },
+    {
+      "original": "use clear language Norman Ernest Borlaug ( ; March 25, 1914September 12, 2009) was an American agronomist who led initiatives worldwide that contributed to the extensive increases in agricultural production termed the Green Revolution.",
+      "simplified": "Norman Ernest Borlaug (; March 25, 1914September 12, 2009) was an American agronomist.",
+      "expected": "Norman Borlaug (born March 25, 1914 - died September 12, 2009) was an American scientist.",
+      "metrics": {
+        "fkgl_improvement": 9.397916666666674,
+        "flesch_improvement": 31.756249999999966,
+        "expected_fkgl_improvement": 10.86553571428572,
+        "expected_flesch_improvement": 45.84053571428569,
+        "compression_ratio": 0.38235294117647056,
+        "subject": "general",
+        "reading_level": 3
+      }
+    },
+    {
+      "original": "use simple words and clear sentences Grazer AK, founded 18 August 1902 as Grazer Athletiksport Klub (in Austria the abbreviation GAK is more common), is an Austrian sports club, from the city of Graz in the federal state of Styria (\"Steiermark\").",
+      "simplified": "Grazer AK is an Austrian sports club.",
+      "expected": "Grazer AK (or GAK) is a football club which plays in Austria.",
+      "metrics": {
+        "fkgl_improvement": 14.822369337979097,
+        "flesch_improvement": 45.711393728223,
+        "expected_fkgl_improvement": 13.996178861788621,
+        "expected_flesch_improvement": 48.69353658536585,
+        "compression_ratio": 0.17073170731707318,
+        "subject": "general",
+        "reading_level": 2
+      }
+    },
+    {
+      "original": "use simple words and clear sentences The serenade was completed in Vienna on 10 August 1787, around the time Mozart was working on the second act of his opera \"Don Giovanni\".",
+      "simplified": "The serenade was completed in Vienna on 10 August 1787.",
+      "expected": "Eine kleine Nachtmusik is the name given to the Serenade No. 13 for strings in G major, K 525 by Wolfgang Amadeus Mozart.",
+      "metrics": {
+        "fkgl_improvement": 6.781612903225806,
+        "flesch_improvement": 11.217580645161291,
+        "expected_fkgl_improvement": 9.326178120617111,
+        "expected_flesch_improvement": 32.13247194950914,
+        "compression_ratio": 0.3225806451612903,
+        "subject": "general",
+        "reading_level": 2
+      }
+    },
+    {
+      "original": "use clear language The Age, a daily newspaper, has been published in Melbourne, Victoria, Australia, since 1854.",
+      "simplified": "The Age, a daily newspaper, has been published in Melbourne, Australia, since 1854.",
+      "expected": "The Age is a newspaper made in Melbourne, Australia.",
+      "metrics": {
+        "fkgl_improvement": 2.8414479638009027,
+        "flesch_improvement": 13.247330316742051,
+        "expected_fkgl_improvement": 4.1997385620915,
+        "expected_flesch_improvement": 15.86117647058822,
+        "compression_ratio": 0.7647058823529411,
+        "subject": "general",
+        "reading_level": 3
+      }
+    },
+    {
+      "original": "use simple words and clear sentences Bibb County is a county in the central portion of the U.S. state of Alabama.",
+      "simplified": "Bibb County is a county in Alabama.",
+      "expected": "Bibb County is a county in the U.S. state of Alabama.",
+      "metrics": {
+        "fkgl_improvement": -1.4445238095238082,
+        "flesch_improvement": -16.590357142857115,
+        "expected_fkgl_improvement": 2.2054112554112564,
+        "expected_flesch_improvement": 6.906168831168827,
+        "compression_ratio": 0.3333333333333333,
+        "subject": "general",
+        "reading_level": 2
+      }
+    }
+  ]
+}

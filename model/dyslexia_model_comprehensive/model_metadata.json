@@ -1,0 +1,22 @@
+{
+  "model_info": {
+    "name": "Dyslexia Text Simplification Model",
+    "version": "2.0.0",
+    "base_model": "t5-small",
+    "training_data": "WikiAuto + Educational Content",
+    "total_parameters": 60495872,
+    "device": "mps",
+    "training_date": "2025-06-10T21:59:45.472462"
+  },
+  "training_config": {
+    "subset_size": 1000,
+    "num_epochs": 3,
+    "batch_size": 4,
+    "total_examples": 748
+  },
+  "performance_summary": {
+    "mean_fkgl_improvement": 5.662382608156432,
+    "success_rate": 98.0,
+    "mean_compression": 0.5081197971825221
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "model_name": "t5-small",
+  "training_time": 390.2775938510895,
+  "num_epochs": 3,
+  "batch_size": 4,
+  "train_size": 635,
+  "val_size": 113,
+  "total_parameters": 60495872,
+  "device": "mps",
+  "timestamp": "2025-06-10T21:58:27.362965"
+}

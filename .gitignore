@@ -1,0 +1,28 @@
+# Large model files
+*.safetensors
+*.pt
+*.bin
+*.pth
+
+# OS files
+.DS_Store
+*.DS_Store
+
+# TensorBoard logs
+logs/
+*.tfevents.*
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.venv
+env/
+venv/
+
