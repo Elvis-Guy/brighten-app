@@ -1,4 +1,4 @@
-# Brighten App - A Learning Platform for Dyslexic Learners
+# Brighten - A Learning Platform for Dyslexic Learners
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.0.0-blue?logo=react)](https://reactjs.org/)
@@ -9,7 +9,13 @@
 
 ## 🌟 Overview
 
-Brighten App is an innovative AI-powered learning platform specifically designed to support dyslexic learners. The application combines advanced machine learning with intuitive user interface design to create an accessible, personalized educational experience.
+Brighten is an innovative learning platform specifically designed to support dyslexic learners. The application combines advanced machine learning with intuitive user interface design to create an accessible, personalized educational experience.
+
+## Video Demos
+
+### Initial Model Implementation
+
+[![YouTube Demo](https://img.shields.io/badge/YouTube-Demo-red?logo=youtube)](https://www.youtube.com/watch?v=eVwP6MtANHs)
 
 ### Key Features
 - 🤖 **AI-Powered Text Simplification** - Custom T5-based model trained specifically for dyslexia-friendly content
@@ -251,7 +257,7 @@ This project is part of a capstone project for educational purposes.
 
 ## 👥 Team
 
-**Elvis Guy Bakunzi** - *Project Lead & Full-Stack Developer*
+**Elvis Guy Bakunzi** - *Machine Learning Engineer*
 - Frontend Development (Next.js/React)
 - ML Model Training & Optimization
 - System Architecture
