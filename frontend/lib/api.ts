@@ -1,10 +1,61 @@
 // ============================================================================
 // FILE: lib/api.ts
-// Description: Utility functions for interacting with Gemini API.
+// Description: Utility functions for interacting with APIs.
 // ============================================================================
 // These are utility functions, not React components, so no "use client" needed.
 // They will be called from client components.
 import type { CurriculumSubject } from '@/types';
+
+export const callLocalSimplificationAPI = async (
+  text: string,
+  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
+  customAlert: (message: string) => void
+): Promise<string | null> => {
+  setLoadingText('Simplifying text with local model...');
+  try {
+    const response = await fetch('http://localhost:5001/simplify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: text
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    setLoadingText('');
+
+    // Handle different possible response formats
+    if (result.simplified_text) {
+      return result.simplified_text;
+    } else if (result.simplified) {
+      return result.simplified;
+    } else if (result.text) {
+      return result.text;
+    } else if (typeof result === 'string') {
+      return result;
+    } else {
+      console.error("Unexpected API response structure:", result);
+      customAlert("Failed to simplify text. Unexpected response format.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error calling local simplification API:", error);
+    setLoadingText('');
+    
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      customAlert("Could not connect to local simplification API. Make sure it's running on http://localhost:5001");
+    } else {
+      customAlert("An error occurred during text simplification. Please try again.");
+    }
+    return null;
+  }
+};
 
 export const callGeminiAPI = async (
   prompt: string,

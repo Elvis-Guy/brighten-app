@@ -10,7 +10,7 @@ import { useAppContext } from '@/context/AppContext';
 import { SpeakerWaveIcon, RefreshIcon, ChevronLeftIcon } from '@/components/icons';
 import { curriculumContent } from '@/data/curriculumData';
 import curriculumData from '@/curriculum_content.json';
-import { callGeminiAPI, generateVisualization } from '@/lib/api';
+import { callGeminiAPI, callLocalSimplificationAPI, generateVisualization } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import type { CurrentLesson } from '@/types';
 
@@ -174,7 +174,32 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
   };
 
   const handleGenerateSimplifiedText = async () => {
-    const simplified = await callGeminiAPI(selectedLesson.content.original, 'text', null, setLoadingText, console.warn);
+    const simplified = await callLocalSimplificationAPI(selectedLesson.content.original, setLoadingText, console.warn);
+    if (simplified && typeof simplified === 'string') {
+      setSelectedLesson(prev => {
+        if (prev) {
+          return {
+            ...prev,
+            content: { ...prev.content, simplified: simplified }
+          };
+        }
+        return null;
+      });
+      
+      // Track progress for simplification activity
+      if (lessonId) {
+        const currentProgress = learningProgress?.lessonsInProgress[lessonId]?.progressPercentage || 10;
+        updateLessonProgress(lessonId, {
+          progressPercentage: Math.max(currentProgress, 60), // 60% for generating simplified text
+          currentSection: 'simplification'
+        });
+      }
+    }
+  };
+
+  const handleGenerateSimplifiedTextWithGemini = async () => {
+    const prompt = `Please simplify the following text to make it easier to understand while keeping all important information. Make it suitable for students who may need clearer explanations:\n\n${selectedLesson.content.original}`;
+    const simplified = await callGeminiAPI(prompt, 'text', null, setLoadingText, console.warn);
     if (simplified && typeof simplified === 'string') {
       setSelectedLesson(prev => {
         if (prev) {
@@ -333,7 +358,16 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  <span className="text-sm hidden sm:inline">Simplify</span>
+                  <span className="text-sm hidden sm:inline">Simplify (Local AI)</span>
+                </button>
+                <button
+                  onClick={handleGenerateSimplifiedTextWithGemini}
+                  className="p-2 bg-blue-100 rounded-full text-blue-600 hover:bg-blue-200 transition duration-200 flex items-center space-x-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <span className="text-sm hidden sm:inline">Simplify (Gemini)</span>
                 </button>
               </div>
             </div>
