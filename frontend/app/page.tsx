@@ -4,92 +4,655 @@
 // ============================================================================
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import { BookOpenIcon, CloudUploadIcon } from '@/components/icons';
 import { curriculumContent } from '@/data/curriculumData';
 import type { CurriculumSubject } from '@/types';
 
+// Import curriculum data safely
+let curriculumData: any = null;
+try {
+  curriculumData = require('@/curriculum_content.json');
+} catch (error) {
+  console.warn('Could not load curriculum data:', error);
+}
+
 const HomePage: React.FC = () => {
-  const { setSelectedLesson } = useAppContext();
+  const { setSelectedLesson, authState, currentEnrollment, getContinueLearningData, learningProgress } = useAppContext();
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const isAuthenticated = authState.isAuthenticated && !authState.isAnonymous;
+  const userName = authState.user?.displayName || authState.user?.email?.split('@')[0] || 'Friend';
+
+  // Get current enrollment data FIRST
+  const getCurrentEnrollmentData = () => {
+    if (!currentEnrollment || !curriculumData) return null;
+    
+    const { grade, subject, topic } = currentEnrollment;
+    const subjectData = curriculumData.curriculum?.[grade]?.[subject];
+    const topicData = subjectData?.topics?.find((t: any) => t.topic === topic);
+    
+    if (subjectData && topicData) {
+      const subjectImages = {
+        mathematics: '/mathematics1.jpeg',
+        science: '/science1.jpeg',
+        english: '/english1.jpeg'
+      };
+      
+      // Calculate actual progress based on topic position
+      const topicIndex = subjectData.topics.findIndex((t: any) => t.topic === topic);
+      const totalTopics = subjectData.topics.length;
+      const progressPercentage = Math.round(((topicIndex + 1) / totalTopics) * 100);
+      
+      return {
+        grade: subjectData.grade,
+        subject: subjectData.subject,
+        topic: topicData.topic,
+        description: topicData.content.substring(0, 150) + '...',
+        progress: progressPercentage,
+        image: subjectImages[subject as keyof typeof subjectImages] || '/science1.jpeg',
+        totalTopics: subjectData.topics.length,
+        currentTopicIndex: topicIndex,
+        topicContent: topicData.content
+      };
+    }
+    
+    return null;
+  };
+
+  const enrollmentData = getCurrentEnrollmentData();
+
+  // Get Grade 10 subjects for unauthenticated users
+  const getGrade10Subjects = () => {
+    if (!curriculumData || !curriculumData.curriculum || !curriculumData.curriculum.grade_10) {
+      return [];
+    }
+
+    const grade10 = curriculumData.curriculum.grade_10;
+    const subjects = [];
+    
+    const subjectOrder = ['mathematics', 'science', 'english'];
+    const subjectImages = {
+      mathematics: '/mathematics1.jpeg',
+      science: '/science1.jpeg',
+      english: '/english1.jpeg'
+    };
+
+    for (const subjectKey of subjectOrder) {
+      if (grade10[subjectKey]) {
+        const subjectData = grade10[subjectKey];
+        const firstTopic = subjectData.topics[0];
+        
+        subjects.push({
+          id: `grade_10_${subjectKey}`,
+          title: subjectData.subject,
+          lessons: subjectData.topics.length,
+          progress: 0,
+          topic: firstTopic.topic,
+          description: firstTopic.content.substring(0, 120) + '...',
+          image: subjectImages[subjectKey as keyof typeof subjectImages],
+          content: {
+            original: firstTopic.content,
+            simplified: firstTopic.content,
+            visualPrompt: `Create a visual representation of ${firstTopic.topic} in ${subjectData.subject} for Grade 10 students.`
+          },
+          grade: 10,
+          subjectKey: subjectKey,
+          gradeKey: 'grade_10'
+        });
+      }
+    }
+    
+    return subjects;
+  };
+
+  // Get recommended subjects for authenticated users (3 subjects only)
+  const getAllCurriculumSubjects = () => {
+    if (!curriculumData || !curriculumData.curriculum) {
+      return [];
+    }
+
+    const subjects = [];
+    const subjectImages = {
+      mathematics: '/mathematics1.jpeg',
+      science: '/science1.jpeg',
+      english: '/english1.jpeg'
+    };
+
+    // First, add the user's current learning subject if they have one
+    if (currentEnrollment && enrollmentData) {
+      const currentSubject = {
+        id: `${currentEnrollment.grade}_${currentEnrollment.subject}`,
+        title: `${enrollmentData.subject} - Grade ${enrollmentData.grade}`,
+        lessons: enrollmentData.totalTopics,
+        progress: enrollmentData.progress,
+        topic: enrollmentData.topic,
+        description: enrollmentData.description,
+        image: enrollmentData.image,
+        content: {
+          original: enrollmentData.topicContent || '',
+          simplified: enrollmentData.topicContent || '',
+          visualPrompt: `Create a visual representation of ${enrollmentData.topic} in ${enrollmentData.subject} for Grade ${enrollmentData.grade} students.`
+        },
+        grade: enrollmentData.grade,
+        subjectKey: currentEnrollment.subject,
+        gradeKey: currentEnrollment.grade,
+        isCurrentlyLearning: true,
+        currentTopicIndex: enrollmentData.currentTopicIndex
+      };
+      subjects.push(currentSubject);
+    }
+
+    // Fill remaining slots with other recommendations (avoid duplicating current subject)
+    const remainingSlots = 3 - subjects.length;
+    const baseRecommendations = [
+      { grade: 'grade_10', subject: 'mathematics', gradeLabel: 'Grade 10' },
+      { grade: 'grade_11', subject: 'science', gradeLabel: 'Grade 11' },
+      { grade: 'grade_12', subject: 'english', gradeLabel: 'Grade 12' },
+      { grade: 'grade_10', subject: 'science', gradeLabel: 'Grade 10' },
+      { grade: 'grade_11', subject: 'english', gradeLabel: 'Grade 11' },
+      { grade: 'grade_12', subject: 'mathematics', gradeLabel: 'Grade 12' }
+    ];
+
+    // Filter out the current learning subject to avoid duplication
+    const availableRecommendations = baseRecommendations.filter(rec => {
+      if (currentEnrollment) {
+        return !(rec.grade === currentEnrollment.grade && rec.subject === currentEnrollment.subject);
+      }
+      return true;
+    });
+
+    // Add remaining recommendations
+    for (let i = 0; i < remainingSlots && i < availableRecommendations.length; i++) {
+      const rec = availableRecommendations[i];
+      const gradeData = curriculumData.curriculum[rec.grade];
+      
+      if (gradeData && gradeData[rec.subject]) {
+        const subjectData = gradeData[rec.subject];
+        const firstTopic = subjectData.topics[0];
+        
+        subjects.push({
+          id: `${rec.grade}_${rec.subject}`,
+          title: `${subjectData.subject} - ${rec.gradeLabel}`,
+          lessons: subjectData.topics.length,
+          progress: 0,
+          topic: firstTopic.topic,
+          description: firstTopic.content.substring(0, 120) + '...',
+          image: subjectImages[rec.subject as keyof typeof subjectImages],
+          content: {
+            original: firstTopic.content,
+            simplified: firstTopic.content,
+            visualPrompt: `Create a visual representation of ${firstTopic.topic} in ${subjectData.subject} for ${subjectData.grade}th grade students.`
+          },
+          grade: subjectData.grade,
+          subjectKey: rec.subject,
+          gradeKey: rec.grade,
+          isCurrentlyLearning: false
+        });
+      }
+    }
+    
+    return subjects;
+  };
+
+  // Filter subjects based on search term
+  const getFilteredSubjects = () => {
+    if (isAuthenticated) {
+      // For authenticated users, show all curriculum subjects from all grades
+      const allSubjects = getAllCurriculumSubjects();
+      return allSubjects.filter(subject =>
+        subject.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subject.topic.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    } else {
+      // For unauthenticated users, show Grade 10 subjects
+      const grade10Subjects = getGrade10Subjects();
+      return grade10Subjects.filter(subject =>
+        subject.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        subject.topic.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+  };
+
+  const filteredSubjects = getFilteredSubjects();
+
+  const handleContinueLearning = () => {
+    // First, try to get continue learning data from progress system
+    const continueData = getContinueLearningData();
+    
+    if (continueData) {
+      // Use progress-based continue learning
+      const { lessonId } = continueData;
+      window.location.href = `/content/${lessonId}`;
+      return;
+    }
+    
+    // Fallback to enrollment-based continue learning
+    if (currentEnrollment) {
+      const { grade, subject, topic } = currentEnrollment;
+      // Create lesson ID that matches the format expected by the content page
+      const lessonId = `${grade}_${subject}_${topic.replace(/\s+/g, '_').toLowerCase()}`;
+      
+      // Set the selected lesson context if we have enrollment data
+      if (enrollmentData) {
+        const lesson = {
+          id: lessonId,
+          title: enrollmentData.subject,
+          lessons: enrollmentData.totalTopics,
+          progress: enrollmentData.progress,
+          topic: enrollmentData.topic,
+          description: `${enrollmentData.subject} - ${enrollmentData.topic}`,
+          image: enrollmentData.image,
+          content: {
+            original: enrollmentData.topicContent || '',
+            simplified: enrollmentData.topicContent || '',
+            visualPrompt: `Create a visual representation of ${enrollmentData.topic} in ${enrollmentData.subject} for Grade ${enrollmentData.grade} students.`
+          },
+          grade: enrollmentData.grade,
+          subjectKey: subject,
+          gradeKey: grade
+        };
+        setSelectedLesson(lesson);
+      }
+      
+      // Navigate to the content page
+      window.location.href = `/content/${lessonId}`;
+    }
+  };
+
+  const handleSubjectClick = (subject: any) => {
+    if (isAuthenticated) {
+      // For the currently learning subject, continue learning
+      if (subject.isCurrentlyLearning) {
+        handleContinueLearning();
+      } else {
+        // For other subjects, set the lesson and navigate
+        setSelectedLesson(subject);
+        window.location.href = `/content/${subject.id}`;
+      }
+    } else {
+      // For unauthenticated users, redirect to signup
+      window.location.href = '/auth/signup';
+    }
+  };
 
   return (
-    <div className="p-6 md:p-10">
-      {/* Welcome Banner */}
-      <div className="bg-orange-500 text-white p-6 md:p-10 rounded-xl shadow-lg mb-10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-orange-600 rounded-full opacity-20 transform translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-600 rounded-full opacity-20 transform -translate-x-1/3 translate-y-1/3"></div>
-        <h2 className="text-4xl font-bold mb-2">Welcome back, Amara!</h2>
-        <p className="text-lg mb-6">Continue your learning journey with content designed just for you.</p>
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-          <Link href="/content/science" passHref>
-            <button
-              onClick={() => setSelectedLesson(curriculumContent.science)}
-              className="flex items-center justify-center px-8 py-4 bg-white text-orange-500 font-bold rounded-full shadow-md hover:bg-gray-100 transition duration-300 text-lg"
-            >
-              <BookOpenIcon className="h-6 w-6 mr-2" /> Continue Learning
-            </button>
-          </Link>
-          <Link href="/upload" passHref>
-            <button
-              className="flex items-center justify-center px-8 py-4 border-2 border-white text-white font-bold rounded-full shadow-md hover:bg-white hover:text-orange-500 transition duration-300 text-lg"
-            >
-              <CloudUploadIcon className="h-6 w-6 mr-2" /> Upload New Text
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Curriculum Section */}
-      <h3 className="text-3xl font-bold text-gray-800 mb-6">Grade 5 Curriculum</h3>
-      <div className="flex flex-col md:flex-row items-center justify-between mb-6 space-y-4 md:space-y-0">
-        <div className="flex items-center space-x-4">
-          <button className="px-5 py-2 bg-gray-100 text-gray-700 rounded-full flex items-center space-x-2 hover:bg-gray-200 transition duration-200">
-            <span>Filter</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search subjects..."
-              className="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-700"
-            />
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {Object.values(curriculumContent).map((subject: CurriculumSubject) => (
-          <div key={subject.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-            <img src={subject.image} alt={subject.title} className="w-full h-48 object-cover" />
-            <div className="p-6">
-              <h4 className="text-2xl font-bold text-gray-800 mb-2">{subject.title}</h4>
-              <p className="text-gray-600 mb-4">{subject.lessons} lessons</p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                <div
-                  className="bg-orange-400 h-2.5 rounded-full"
-                  style={{ width: `${subject.progress}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">{subject.progress}% Complete</p>
-              <p className="text-gray-700 mb-6">{subject.description}</p>
-              <Link href={`/content/${subject.id}`} passHref>
-                <button
-                  onClick={() => setSelectedLesson(subject)}
-                  className="w-full px-6 py-3 bg-orange-500 text-white font-bold rounded-full hover:bg-orange-600 transition duration-300 text-lg"
-                >
-                  Continue Learning
-                </button>
-              </Link>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-6 md:p-10 max-w-7xl mx-auto">
+        {/* Welcome Banner */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-8 md:p-12 rounded-2xl shadow-xl mb-8 relative overflow-hidden">
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-400 rounded-full opacity-20 transform translate-x-1/3 -translate-y-1/3"></div>
+          <div className="absolute bottom-0 right-0 w-48 h-48 bg-orange-400 rounded-full opacity-10 transform translate-x-1/4 translate-y-1/4"></div>
+          <div className="absolute top-1/2 right-0 w-32 h-32 bg-orange-400 rounded-full opacity-15 transform translate-x-1/2 -translate-y-1/2"></div>
+          
+          <div className="relative z-10">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              {isAuthenticated ? `Welcome back, ${userName}!` : 'Welcome to Brighten!'}
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 opacity-90">
+              {isAuthenticated 
+                ? 'Continue your learning journey with content designed just for you.' 
+                : 'AI-powered education for dyslexic learners. Explore our Grade 10 curriculum below!'}
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              {isAuthenticated ? (
+                <>
+                  {(getContinueLearningData() || enrollmentData) ? (
+                    <button
+                      onClick={handleContinueLearning}
+                      className="flex items-center justify-center px-8 py-4 bg-white text-orange-500 font-bold rounded-full shadow-lg hover:bg-gray-50 hover:shadow-xl transition-all duration-300 text-lg"
+                    >
+                      <BookOpenIcon className="h-6 w-6 mr-3" /> 
+                      {getContinueLearningData() ? 'Continue Learning' : 'Continue Learning'}
+                    </button>
+                  ) : (
+                    <Link href="/curriculum" passHref>
+                      <button className="flex items-center justify-center px-8 py-4 bg-white text-orange-500 font-bold rounded-full shadow-lg hover:bg-gray-50 hover:shadow-xl transition-all duration-300 text-lg">
+                        <BookOpenIcon className="h-6 w-6 mr-3" /> Explore Curriculum
+                      </button>
+                    </Link>
+                  )}
+                  <Link href="/upload" passHref>
+                    <button className="flex items-center justify-center px-8 py-4 bg-orange-700 text-white font-bold rounded-full shadow-lg hover:bg-orange-800 hover:shadow-xl transition-all duration-300 text-lg border-2 border-orange-700">
+                      <CloudUploadIcon className="h-6 w-6 mr-3" /> Upload New Text
+                    </button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/signup" passHref>
+                    <button className="flex items-center justify-center px-8 py-4 bg-white text-orange-500 font-bold rounded-full shadow-lg hover:bg-gray-50 hover:shadow-xl transition-all duration-300 text-lg">
+                      <BookOpenIcon className="h-6 w-6 mr-3" /> Get Started Free
+                    </button>
+                  </Link>
+                  <Link href="/auth/signin" passHref>
+                    <button className="flex items-center justify-center px-8 py-4 bg-orange-700 text-white font-bold rounded-full shadow-lg hover:bg-orange-800 hover:shadow-xl transition-all duration-300 text-lg border-2 border-orange-700">
+                      Sign In
+                    </button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Learning Progress Summary for Authenticated Users */}
+        {isAuthenticated && learningProgress && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Learning Progress</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Continue Learning Card */}
+              {getContinueLearningData() && (
+                <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-gray-800">Continue Learning</h3>
+                    <BookOpenIcon className="h-5 w-5 text-orange-500" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {getContinueLearningData()?.progress.progressPercentage}% complete
+                  </p>
+                  <button
+                    onClick={handleContinueLearning}
+                    className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                  >
+                    Resume
+                  </button>
+                </div>
+              )}
+              
+              {/* Lessons Completed */}
+              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-800">Lessons Completed</h3>
+                  <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-2xl font-bold text-green-600 mb-1">
+                  {learningProgress.lessonsCompleted.length}
+                </p>
+                <p className="text-sm text-gray-600">Total completed</p>
+              </div>
+
+              {/* Learning Streak */}
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-800">Learning Streak</h3>
+                  <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 mb-1">
+                  {learningProgress.streakDays}
+                </p>
+                <p className="text-sm text-gray-600">Days in a row</p>
+              </div>
+
+              {/* Total Time */}
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-800">Time Learned</h3>
+                  <svg className="h-5 w-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-2xl font-bold text-purple-600 mb-1">
+                  {Math.round(learningProgress.totalTimeSpentMinutes / 60) || 0}h
+                </p>
+                <p className="text-sm text-gray-600">Total hours</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Curriculum Section */}
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
+                {isAuthenticated 
+                  ? (currentEnrollment ? 'Your Learning & Recommendations' : 'Recommended for You')
+                  : 'Grade 10 Curriculum Preview'}
+              </h2>
+              {isAuthenticated ? (
+                <p className="text-gray-600 mt-2">
+                  {currentEnrollment 
+                    ? 'Continue your current studies and explore new subjects curated for you.'
+                    : 'Hand-picked subjects to get you started. Browse the full curriculum to explore more.'
+                  }
+                </p>
+              ) : (
+                <p className="text-gray-600 mt-2">
+                  Get a taste of our comprehensive curriculum. Sign up to access all grades and subjects!
+                </p>
+              )}
+            </div>
+            
+            {/* Search Input */}
+            <div className="relative">
+              <svg className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search subjects..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 bg-white border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-gray-700 shadow-sm"
+              />
+            </div>
+          </div>
+
+          {/* Subject Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSubjects.map((subject: any) => (
+              <div key={subject.id} className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden border ${subject.isCurrentlyLearning ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}>
+                <div className="relative">
+                  <img 
+                    src={subject.image} 
+                    alt={subject.title} 
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                  <div className="absolute bottom-4 left-4">
+                    <h3 className="text-2xl font-bold text-white drop-shadow-lg">
+                      {subject.title}
+                    </h3>
+                  </div>
+                  <div className="absolute top-4 right-4">
+                    <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-sm font-medium">
+                      {isAuthenticated ? `Grade ${subject.grade}` : 'Grade 10'}
+                    </span>
+                  </div>
+                  {isAuthenticated && (
+                    <div className="absolute top-4 left-4">
+                      <span className={`px-3 py-1 text-white rounded-full text-sm font-medium ${
+                        subject.isCurrentlyLearning 
+                          ? 'bg-green-500' 
+                          : 'bg-blue-500'
+                      }`}>
+                        {subject.isCurrentlyLearning ? 'Currently Learning' : 'Recommended'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-orange-600 font-semibold text-lg">{subject.topic}</span>
+                    <span className="text-gray-500 text-sm">{subject.lessons} lessons</span>
+                  </div>
+                  
+                  <p className="text-gray-600 mb-4 text-sm leading-relaxed">
+                    {subject.description}
+                  </p>
+                  
+                  {/* Progress Bar for Currently Learning Subject */}
+                  {subject.isCurrentlyLearning && subject.progress > 0 && (
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700">Your Progress</span>
+                        <span className="text-sm font-medium text-green-600">{subject.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${subject.progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500">
+                        Topic {(subject.currentTopicIndex || 0) + 1} of {subject.lessons}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => handleSubjectClick(subject)}
+                    className={`w-full py-3 px-4 rounded-xl font-semibold transition-colors duration-200 shadow-md hover:shadow-lg ${
+                      subject.isCurrentlyLearning 
+                        ? 'bg-green-500 text-white hover:bg-green-600' 
+                        : 'bg-orange-500 text-white hover:bg-orange-600'
+                    }`}
+                  >
+                    {isAuthenticated 
+                      ? (subject.isCurrentlyLearning ? 'Continue Learning' : 'Start Learning')
+                      : 'Sign Up to Access'
+                    }
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Empty State */}
+          {filteredSubjects.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">
+                {searchTerm ? 'No subjects found matching your search.' : 'No curriculum content available.'}
+              </p>
+            </div>
+          )}
+          
+          {/* Call to Action for Unauthenticated Users */}
+          {!isAuthenticated && (
+            <div className="mt-8 text-center">
+              <div className="bg-gradient-to-r from-orange-100 to-orange-50 rounded-2xl p-8 border border-orange-200">
+                <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                  Ready to unlock your full potential?
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                  Join thousands of students who are improving their learning with our AI-powered platform. 
+                  Access all grades, subjects, and personalized content designed specifically for dyslexic learners.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link href="/auth/signup">
+                    <button className="px-8 py-4 bg-orange-500 text-white font-bold rounded-full shadow-lg hover:bg-orange-600 transition-colors duration-200">
+                      Start Free Trial
+                    </button>
+                  </Link>
+                  <Link href="/curriculum">
+                    <button className="px-8 py-4 border border-orange-500 text-orange-500 font-bold rounded-full hover:bg-orange-50 transition-colors duration-200">
+                      Browse Full Curriculum
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Stats Section for Authenticated Users */}
+          {isAuthenticated && (
+            <div className="mt-8">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-200">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+                  Your Learning Universe
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
+                    <div className="text-gray-600">Grade Levels</div>
+                    <div className="text-sm text-gray-500">Grades 10, 11, 12</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-blue-600 mb-2">9</div>
+                    <div className="text-gray-600">Total Subjects</div>
+                    <div className="text-sm text-gray-500">Math, Science, English</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-blue-600 mb-2">90+</div>
+                    <div className="text-gray-600">Total Topics</div>
+                    <div className="text-sm text-gray-500">Across all subjects</div>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-gray-600 mb-4">
+                    Want to explore more? Access our complete curriculum library.
+                  </p>
+                  <Link href="/curriculum">
+                    <button className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-lg hover:bg-blue-700 transition-colors duration-200">
+                      Browse All Subjects
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions for Authenticated Users */}
+        {isAuthenticated && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Link href="/curriculum">
+              <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow duration-300 border border-gray-100 cursor-pointer group">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                  <BookOpenIcon className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-gray-800 mb-2">Browse All Subjects</h3>
+                <p className="text-gray-600 text-sm">Explore the complete curriculum</p>
+              </div>
+            </Link>
+            
+            <Link href="/upload">
+              <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow duration-300 border border-gray-100 cursor-pointer group">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                  <CloudUploadIcon className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="font-semibold text-gray-800 mb-2">Upload Text</h3>
+                <p className="text-gray-600 text-sm">Simplify your own content</p>
+              </div>
+            </Link>
+            
+            <Link href="/visualizations">
+              <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow duration-300 border border-gray-100 cursor-pointer group">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                  <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-gray-800 mb-2">Visualizations</h3>
+                <p className="text-gray-600 text-sm">View learning visuals</p>
+              </div>
+            </Link>
+            
+            <Link href="/settings">
+              <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow duration-300 border border-gray-100 cursor-pointer group">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-200 transition-colors">
+                  <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.524-1.783 2.679-1.783 3.203 0l.865 2.623a1 1 0 00.928.688l2.945-.279c1.85-.175 2.31.29 1.415 1.988l-2.096 1.724a1 1 0 00-.342 1.09l.7 2.84c.466 1.896-.946 3.25-2.615 2.768l-2.642-.965a1 1 0 00-1.153 0l-2.642.965c-1.669.482-3.081-.872-2.615-2.768l.7-2.84a1 1 0 00-.342-1.09L4.317 8.42c-.895-1.698-.436-2.163 1.415-1.988l2.945.279a1 1 0 00.928-.688l.865-2.623z" />
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-gray-800 mb-2">Settings</h3>
+                <p className="text-gray-600 text-sm">Customize your experience</p>
+              </div>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

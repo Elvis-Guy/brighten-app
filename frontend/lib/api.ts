@@ -15,10 +15,16 @@ export const callGeminiAPI = async (
 ): Promise<string | object | null> => {
   setLoadingText(`Generating ${type}...`);
   try {
-    let chatHistory = [];
+    const chatHistory: { role: string; parts: { text: string }[] }[] = [];
     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
-    let payload: any = { contents: chatHistory };
+    const payload: { 
+      contents: { role: string; parts: { text: string }[] }[]; 
+      generationConfig?: {
+        responseMimeType: string;
+        responseSchema: object;
+      };
+    } = { contents: chatHistory };
     if (schema) {
       payload.generationConfig = {
         responseMimeType: "application/json",

@@ -2,12 +2,17 @@
 // FILE: components/Footer.tsx
 // Description: Footer component.
 // ============================================================================
-// This can be a Server Component as it doesn't use client-side hooks.
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
 import { SunIcon } from '@/components/icons';
+import { useAppContext } from '@/context/AppContext';
 
-const Footer = () => (
+const Footer = () => {
+  const { authState } = useAppContext();
+  
+  return (
   <footer className="bg-gray-800 text-gray-300 py-10 px-6 md:px-10 rounded-t-xl mt-10">
     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
       {/* About Brighten */}
@@ -39,7 +44,10 @@ const Footer = () => (
           <li><Link href="/" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Home</button></Link></li>
           <li><Link href="/curriculum" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Curriculum</button></Link></li>
           <li><Link href="/upload" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Upload & Simplify</button></Link></li>
-          <li><Link href="/visualizations" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Visualizations</button></Link></li>
+          <li><Link href="/about" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">About Us</button></Link></li>
+          {authState.isAdmin && (
+            <li><Link href="/admin" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Admin</button></Link></li>
+          )}
           <li><Link href="/settings" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Settings</button></Link></li>
         </ul>
       </div>
@@ -75,9 +83,10 @@ const Footer = () => (
       </div>
     </div>
     <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-500 text-sm">
-      &copy; 2023 Brighten. All rights reserved. Designed with ❤️ for African students.
+      &copy; 2025 Brighten. All rights reserved. Designed with ❤️ for Dyslexic students.
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;

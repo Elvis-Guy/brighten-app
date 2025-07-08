@@ -1,9 +1,8 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-// Custom scrollbar for content areas
+/* Custom scrollbar for content areas */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
@@ -22,12 +21,38 @@
   background: #555;
 }
 
-// Custom range input styling for orange color
+/* Custom range input styling for orange color */
 input[type="range"].range-orange::-webkit-slider-thumb {
-  background: #f97316; // Tailwind orange-500
+  background: #f97316; /* Tailwind orange-500 */
 }
 
 input[type="range"].range-orange::-moz-range-thumb {
-  background: #f97316; // Tailwind orange-500
+  background: #f97316; /* Tailwind orange-500 */
+}
+
+/* Line clamp utilities */
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Prose styling for readable text */
+.prose {
+  max-width: none;
+}
+
+.prose p {
+  margin-bottom: 1rem;
+}
+
+.prose-lg {
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+.prose-lg p {
+  margin-bottom: 1.25rem;
 }
 

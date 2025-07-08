@@ -4,28 +4,17 @@
 // ============================================================================
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { UploadIcon, DocumentIcon, PDFIcon, WordIcon, ArrowRightIcon } from '@/components/icons';
+import { CloudUploadIcon, DocumentIcon } from '@/components/icons';
 import PasteTextModal from '@/components/ui/PasteTextModal';
 import type { CurriculumSubject } from '@/types';
 
-interface UploadedFile {
-  name: string;
-  uploaded: string;
-  type: 'pdf' | 'word' | 'text';
-}
-
 const UploadSimplifyPage: React.FC = () => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { setSelectedLesson, showPasteTextModal, setShowPasteTextModal, pasteTextContent, setPasteTextContent } = useAppContext();
   const router = useRouter();
-
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([
-    { name: "History_Assignment.pdf", uploaded: "2 days ago", type: "pdf" },
-    { name: "Geography_Notes.docx", uploaded: "1 week ago", type: "word" },
-  ]);
 
   const handleChooseFileClick = () => {
     fileInputRef.current?.click();
@@ -93,7 +82,7 @@ const UploadSimplifyPage: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200 text-center mb-10">
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 flex flex-col items-center justify-center">
-          <UploadIcon className="h-16 w-16 text-gray-400 mb-4" />
+          <CloudUploadIcon className="h-16 w-16 text-gray-400 mb-4" />
           <p className="text-xl font-semibold text-gray-700 mb-2">Drag & Drop Your File</p>
           <p className="text-gray-500 mb-6">Upload PDF, Word documents, or text files to simplify and visualize</p>
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
@@ -124,7 +113,7 @@ const UploadSimplifyPage: React.FC = () => {
 
       <h3 className="text-2xl font-bold text-gray-800 mb-6">Recently Uploaded</h3>
       <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-        {uploadedFiles.map((file, index) => (
+        {/* uploadedFiles.map((file, index) => (
           <div key={index} className="flex items-center justify-between p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition duration-200 cursor-pointer">
             <div className="flex items-center space-x-4">
               {file.type === 'pdf' ? <PDFIcon /> : <WordIcon />}
@@ -135,7 +124,7 @@ const UploadSimplifyPage: React.FC = () => {
             </div>
             <ArrowRightIcon className="text-gray-400" />
           </div>
-        ))}
+        )) */}
       </div>
       <PasteTextModal
         show={showPasteTextModal}

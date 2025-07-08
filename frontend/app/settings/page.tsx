@@ -8,6 +8,7 @@ import React from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { TextSizeIcon, PaletteIcon, MicrophoneIcon, PlusIcon, MinusIcon } from '@/components/icons';
 import type { UserPreferences } from '@/types';
+import { doc, setDoc } from "firebase/firestore";
 
 const SettingsPage: React.FC = () => {
   const { userPreferences, setUserPreferences, userId, loadingText, setLoadingText, db, appId } = useAppContext();
