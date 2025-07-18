@@ -5,226 +5,198 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
-import { TextSizeIcon, PaletteIcon, MicrophoneIcon, PlusIcon, MinusIcon } from '@/components/icons';
-import type { UserPreferences } from '@/types';
-import { doc, setDoc } from "firebase/firestore";
+import { UserIcon, CogIcon, EyeIcon, BookOpenIcon, ChevronRightIcon, ArrowRightIcon } from '@/components/icons';
 
-const SettingsPage: React.FC = () => {
-  const { userPreferences, setUserPreferences, userId, loadingText, setLoadingText, db, appId } = useAppContext();
+const SettingsOverviewPage: React.FC = () => {
+  const { authState, userPreferences } = useAppContext();
 
-  // Function to save preferences to Firestore
-  const savePreferences = async () => {
-    if (!userId || !db) {
-      console.error("User not authenticated or Firestore not initialized.");
-      return;
+  const settingsCards = [
+    {
+      href: '/settings/preferences',
+      title: 'Learning Preferences',
+      icon: EyeIcon,
+      description: 'Customize fonts, colors, audio settings, and accessibility options',
+      color: 'orange',
+      stats: [
+        `Font: ${userPreferences.fontFamily.split(',')[0]}`,
+        `Voice: ${userPreferences.voice}`,
+        `Size: ${userPreferences.fontSize}px`
+      ]
+    },
+    {
+      href: '/settings/profile',
+      title: 'Account Profile',
+      icon: UserIcon,
+      description: 'Manage your account details, change password, and account settings',
+      color: 'blue',
+      show: authState.isAuthenticated && !authState.isAnonymous,
+      stats: [
+        authState.user?.email ? `Email: ${authState.user.email.substring(0, 20)}...` : 'No email',
+        authState.user?.displayName || 'No display name',
+        authState.isAdmin ? 'Administrator' : 'Student'
+      ]
+    },
+    {
+      href: '/settings/privacy',
+      title: 'Privacy & Data',
+      icon: BookOpenIcon,
+      description: 'Control your privacy settings and data preferences',
+      color: 'green',
+      stats: [
+        'Data sync: ' + (authState.isAnonymous ? 'Local only' : 'Cloud enabled'),
+        'Account type: ' + (authState.isAnonymous ? 'Guest' : 'Registered'),
+        'Auto-save: Enabled'
+      ]
     }
-    setLoadingText('Saving preferences...');
-    try {
-      const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/preferences/user_settings`);
-      await setDoc(userDocRef, userPreferences, { merge: true });
-      setLoadingText('Preferences saved!');
-      setTimeout(() => setLoadingText(''), 2000);
-    } catch (error) {
-      console.error("Error saving preferences:", error);
-      setLoadingText('Failed to save preferences.');
-      setTimeout(() => setLoadingText(''), 2000);
-    }
-  };
+  ];
 
-  // Default preferences for reset or initial state (used for high contrast toggle logic)
-  const defaultPreferencesForReset: UserPreferences = {
-    fontFamily: 'Inter, sans-serif',
-    fontSize: 16,
-    letterSpacing: 0,
-    backgroundColor: '#FFFBEB',
-    textColor: '#333333',
-    highContrastMode: false,
-    voice: 'female',
-    speakingRate: 1,
-    language: 'English',
-  };
+  const visibleCards = settingsCards.filter(card => card.show !== false);
 
   return (
-    <div className="p-6 md:p-10">
-      <h2 className="text-3xl font-bold text-gray-800 mb-8">Personalize Your Experience</h2>
+    <div className="p-6">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Settings Overview</h2>
+        <p className="text-gray-600">
+          Welcome to your settings dashboard. Manage your account and personalize your learning experience.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-        {/* Font Settings */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <div className="flex items-center space-x-3 mb-4">
-            <TextSizeIcon className="h-7 w-7 text-orange-500" />
-            <h3 className="text-xl font-semibold text-gray-800">Font Settings</h3>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="fontFamily" className="block text-gray-700 font-medium mb-2">Font Family</label>
-            <select
-              id="fontFamily"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-700"
-              value={userPreferences.fontFamily}
-              onChange={(e) => setUserPreferences({ ...userPreferences, fontFamily: e.target.value })}
-            >
-              <option value="Open Dyslexic, sans-serif">Open Dyslexic (Dyslexia-friendly)</option>
-              <option value="Comic Neue, cursive">Comic Neue (Dyslexia-friendly)</option>
-              <option value="Arial, sans-serif">Arial</option>
-              <option value="Verdana, sans-serif">Verdana</option>
-              <option value="Inter, sans-serif">Inter</option>
-            </select>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="fontSize" className="block text-gray-700 font-medium mb-2">Font Size</label>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setUserPreferences(prev => ({ ...prev, fontSize: Math.max(12, prev.fontSize - 1) }))}
-                className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition duration-200"
-              >
-                <MinusIcon className="h-5 w-5" />
-              </button>
-              <span className="text-lg font-semibold text-gray-800 w-16 text-center">{userPreferences.fontSize}px</span>
-              <button
-                onClick={() => setUserPreferences(prev => ({ ...prev, fontSize: Math.min(24, prev.fontSize + 1) }))}
-                className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition duration-200"
-              >
-                <PlusIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="letterSpacing" className="block text-gray-700 font-medium mb-2">Letter Spacing</label>
-            <input
-              type="range"
-              id="letterSpacing"
-              min="0"
-              max="2"
-              step="0.1"
-              value={userPreferences.letterSpacing}
-              onChange={(e) => setUserPreferences({ ...userPreferences, letterSpacing: parseFloat(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-orange"
-            />
-            <div className="flex justify-between text-sm text-gray-500 mt-1">
-              <span>Tight</span>
-              <span>Loose</span>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="flex items-center space-x-3">
+            <EyeIcon className="h-6 w-6 text-orange-500" />
+            <div>
+              <div className="font-semibold text-orange-800">Preferences Set</div>
+              <div className="text-sm text-orange-600">Customized for dyslexia</div>
             </div>
           </div>
         </div>
-
-        {/* Color Theme */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <div className="flex items-center space-x-3 mb-4">
-            <PaletteIcon className="h-7 w-7 text-orange-500" />
-            <h3 className="text-xl font-semibold text-gray-800">Color Theme</h3>
-          </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 font-medium mb-2">Background Color</label>
-            <div className="flex space-x-3">
-              {['#FFFBEB', '#E0F7FA', '#D1C4E9', '#FEECE2', '#263238'].map(color => (
-                <button
-                  key={color}
-                  className={`w-10 h-10 rounded-full border-2 ${userPreferences.backgroundColor === color ? 'border-orange-500' : 'border-gray-300'} transition duration-200`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setUserPreferences({ ...userPreferences, backgroundColor: color })}
-                  aria-label={`Set background color to ${color}`}
-                ></button>
-              ))}
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center space-x-3">
+            <UserIcon className="h-6 w-6 text-blue-500" />
+            <div>
+              <div className="font-semibold text-blue-800">
+                {authState.isAnonymous ? 'Guest User' : 'Registered User'}
+              </div>
+              <div className="text-sm text-blue-600">
+                {authState.isAnonymous ? 'Create account to sync' : 'Account synced'}
+              </div>
             </div>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="contrast" className="block text-gray-700 font-medium mb-2">Contrast</label>
-            <input
-              type="range"
-              id="contrast"
-              min="0.5"
-              max="1.5"
-              step="0.1"
-              value={userPreferences.textColor === '#333333' ? 1 : 0.5} // Simple toggle for demo
-              onChange={(e) => setUserPreferences({ ...userPreferences, textColor: parseFloat(e.target.value) > 0.7 ? '#333333' : '#666666' })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-orange"
-            />
-            <div className="flex justify-between text-sm text-gray-500 mt-1">
-              <span>Low</span>
-              <span>High</span>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="highContrastMode"
-              checked={userPreferences.highContrastMode}
-              onChange={(e) => setUserPreferences({
-                ...userPreferences,
-                highContrastMode: e.target.checked,
-                backgroundColor: e.target.checked ? '#000000' : defaultPreferencesForReset.backgroundColor,
-                textColor: e.target.checked ? '#FFFFFF' : defaultPreferencesForReset.textColor,
-              })}
-              className="h-5 w-5 text-orange-500 rounded border-gray-300 focus:ring-orange-400"
-            />
-            <label htmlFor="highContrastMode" className="ml-2 text-gray-700 font-medium">High contrast mode</label>
           </div>
         </div>
-
-        {/* Audio Settings */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <div className="flex items-center space-x-3 mb-4">
-            <MicrophoneIcon className="h-7 w-7 text-orange-500" />
-            <h3 className="text-xl font-semibold text-gray-800">Audio Settings</h3>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="voice" className="block text-gray-700 font-medium mb-2">Voice</label>
-            <select
-              id="voice"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-700"
-              value={userPreferences.voice}
-              onChange={(e) => setUserPreferences({ ...userPreferences, voice: e.target.value as 'female' | 'male' })}
-            >
-              <option value="female">Female Voice</option>
-              <option value="male">Male Voice</option>
-            </select>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="speakingRate" className="block text-gray-700 font-medium mb-2">Speaking Rate</label>
-            <input
-              type="range"
-              id="speakingRate"
-              min="0.5"
-              max="2"
-              step="0.1"
-              value={userPreferences.speakingRate}
-              onChange={(e) => setUserPreferences({ ...userPreferences, speakingRate: parseFloat(e.target.value) })}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-orange"
-            />
-            <div className="flex justify-between text-sm text-gray-500 mt-1">
-              <span>Slow</span>
-              <span>Fast</span>
+        
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center space-x-3">
+            <BookOpenIcon className="h-6 w-6 text-green-500" />
+            <div>
+              <div className="font-semibold text-green-800">Privacy Secure</div>
+              <div className="text-sm text-green-600">Data protected</div>
             </div>
-          </div>
-          <div className="mb-6">
-            <label htmlFor="language" className="block text-gray-700 font-medium mb-2">Language</label>
-            <select
-              id="language"
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-700"
-              value={userPreferences.language}
-              onChange={(e) => setUserPreferences({ ...userPreferences, language: e.target.value })}
-            >
-              <option value="English">English</option>
-              {/* Add other African languages if TTS supports them */}
-            </select>
           </div>
         </div>
       </div>
 
-      <div className="text-center">
-        <button
-          onClick={savePreferences}
-          className="px-8 py-4 bg-orange-500 text-white font-bold rounded-full shadow-md hover:bg-orange-600 transition duration-300 text-lg"
-        >
-          Save Preferences
-        </button>
-        {loadingText && (
-          <p className="mt-4 text-orange-600 text-sm">{loadingText}</p>
-        )}
+      {/* Settings Cards */}
+      <div className="space-y-6">
+        {visibleCards.map((card) => {
+          const Icon = card.icon;
+          const colorClasses = {
+            orange: {
+              bg: 'bg-orange-50',
+              border: 'border-orange-200',
+              icon: 'text-orange-500',
+              text: 'text-orange-800',
+              button: 'bg-orange-500 hover:bg-orange-600'
+            },
+            blue: {
+              bg: 'bg-blue-50',
+              border: 'border-blue-200',
+              icon: 'text-blue-500',
+              text: 'text-blue-800',
+              button: 'bg-blue-500 hover:bg-blue-600'
+            },
+            green: {
+              bg: 'bg-green-50',
+              border: 'border-green-200',
+              icon: 'text-green-500',
+              text: 'text-green-800',
+              button: 'bg-green-500 hover:bg-green-600'
+            }
+          };
+
+          const colors = colorClasses[card.color as keyof typeof colorClasses];
+
+          return (
+            <div
+              key={card.href}
+              className={`${colors.bg} ${colors.border} border rounded-xl p-6 hover:shadow-md transition-shadow duration-200`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <Icon className={`h-7 w-7 ${colors.icon}`} />
+                    <h3 className={`text-xl font-semibold ${colors.text}`}>{card.title}</h3>
+                  </div>
+                  
+                  <p className="text-gray-700 mb-4">{card.description}</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                    {card.stats.map((stat, index) => (
+                      <div key={index} className="text-sm text-gray-600 bg-white/50 rounded px-3 py-1">
+                        {stat}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <Link
+                  href={card.href}
+                  className={`ml-4 ${colors.button} text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2`}
+                >
+                  <span>Configure</span>
+                  <ArrowRightIcon className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Guest User Notice */}
+      {(authState.isAnonymous || !authState.isAuthenticated) && (
+        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-start space-x-4">
+            <UserIcon className="h-8 w-8 text-blue-500 mt-1" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-blue-800 mb-2">Using Brighten as Guest</h4>
+              <p className="text-blue-700 mb-4">
+                You're currently using Brighten as a guest user. Your preferences are saved locally, 
+                but creating an account will sync your settings across all devices and unlock additional features.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link 
+                  href="/auth/signup" 
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 text-center"
+                >
+                  Create Account
+                </Link>
+                <Link 
+                  href="/auth/signin" 
+                  className="bg-white text-blue-500 border border-blue-500 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 text-center"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default SettingsPage;
+export default SettingsOverviewPage;

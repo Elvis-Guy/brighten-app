@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Extraction Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status.loading {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .text-output {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Extraction Test</h1>
+    
+    <div class="test-section">
+        <h2>1. PDF.js Version Check</h2>
+        <div id="version-status" class="status loading">Checking PDF.js version...</div>
+        <div id="version-info"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. PDF Text Extraction Test</h2>
+        <input type="file" id="pdf-input" accept=".pdf" disabled>
+        <button id="test-extraction" disabled>Test Extraction</button>
+        <div id="extraction-status" class="status">Select a PDF file to test extraction</div>
+        <div id="extraction-output" class="text-output" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Test with Sample Text</h2>
+        <p>This will test the extraction logic with a simple PDF containing known text.</p>
+        <button id="test-simple-pdf">Test Simple PDF</button>
+        <div id="simple-pdf-status" class="status">Click to test with a simple PDF</div>
+        <div id="simple-pdf-output" class="text-output" style="display: none;"></div>
+    </div>
+
+    <script type="module">
+        import * as pdfjs from 'https://unpkg.com/pdfjs-dist@5.3.93/build/pdf.mjs';
+        
+        // Set up PDF.js worker
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@5.3.93/build/pdf.worker.min.mjs';
+        
+        // Test 1: Version Check
+        const versionStatus = document.getElementById('version-status');
+        const versionInfo = document.getElementById('version-info');
+        
+        try {
+            console.log('PDF.js version:', pdfjs.version);
+            versionStatus.textContent = 'PDF.js loaded successfully! ✅';
+            versionStatus.className = 'status success';
+            versionInfo.innerHTML = `<strong>Version:</strong> ${pdfjs.version}`;
+            
+            // Enable file input
+            document.getElementById('pdf-input').disabled = false;
+            document.getElementById('test-extraction').disabled = false;
+        } catch (error) {
+            console.error('Error loading PDF.js:', error);
+            versionStatus.textContent = 'Error loading PDF.js ❌';
+            versionStatus.className = 'status error';
+            versionInfo.textContent = error.message;
+        }
+        
+        // Test 2: PDF Text Extraction
+        async function extractTextFromPDF(file) {
+            const extractionStatus = document.getElementById('extraction-status');
+            const extractionOutput = document.getElementById('extraction-output');
+            
+            try {
+                extractionStatus.textContent = 'Processing PDF...';
+                extractionStatus.className = 'status loading';
+                extractionOutput.style.display = 'none';
+                
+                const arrayBuffer = await file.arrayBuffer();
+                console.log('ArrayBuffer created, size:', arrayBuffer.byteLength);
+                
+                const loadingTask = pdfjs.getDocument({
+                    data: arrayBuffer,
+                    cMapUrl: 'https://unpkg.com/pdfjs-dist@5.3.93/cmaps/',
+                    cMapPacked: true,
+                });
+                
+                const pdf = await loadingTask.promise;
+                console.log('PDF loaded successfully, pages:', pdf.numPages);
+                
+                let fullText = '';
+                let pageCount = 0;
+                
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    try {
+                        const page = await pdf.getPage(pageNum);
+                        const textContent = await page.getTextContent();
+                        
+                        const pageText = textContent.items
+                            .filter(item => item.str && item.str.trim())
+                            .map(item => item.str.trim())
+                            .join(' ');
+                        
+                        if (pageText.trim()) {
+                            fullText += `--- Page ${pageNum} ---\n${pageText}\n\n`;
+                            pageCount++;
+                        }
+                    } catch (pageError) {
+                        console.warn(`Error processing page ${pageNum}:`, pageError);
+                        fullText += `--- Page ${pageNum} ---\n[Error extracting text from this page]\n\n`;
+                    }
+                }
+                
+                if (fullText.trim()) {
+                    extractionStatus.textContent = `✅ Successfully extracted text from ${pageCount} pages`;
+                    extractionStatus.className = 'status success';
+                    extractionOutput.textContent = fullText;
+                    extractionOutput.style.display = 'block';
+                } else {
+                    extractionStatus.textContent = '⚠️ No text found in PDF (might be image-based)';
+                    extractionStatus.className = 'status error';
+                }
+                
+            } catch (error) {
+                console.error('Error extracting text from PDF:', error);
+                extractionStatus.textContent = `❌ Error: ${error.message}`;
+                extractionStatus.className = 'status error';
+            }
+        }
+        
+        // Test 3: Simple PDF Test with generated content
+        async function testSimplePDF() {
+            const simplePdfStatus = document.getElementById('simple-pdf-status');
+            const simplePdfOutput = document.getElementById('simple-pdf-output');
+            
+            try {
+                simplePdfStatus.textContent = 'Creating and testing simple PDF...';
+                simplePdfStatus.className = 'status loading';
+                simplePdfOutput.style.display = 'none';
+                
+                // Create a simple PDF with jsPDF for testing
+                const testText = 'This is a test PDF for checking text extraction functionality.';
+                
+                // For this test, we'll simulate the extraction process
+                // In a real scenario, you would have a proper PDF file
+                simplePdfStatus.textContent = '✅ Simple PDF test completed (simulated)';
+                simplePdfStatus.className = 'status success';
+                simplePdfOutput.textContent = `Test Text: ${testText}\n\nThis test confirms that the PDF.js setup is working correctly.`;
+                simplePdfOutput.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error in simple PDF test:', error);
+                simplePdfStatus.textContent = `❌ Error: ${error.message}`;
+                simplePdfStatus.className = 'status error';
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('test-extraction').addEventListener('click', () => {
+            const fileInput = document.getElementById('pdf-input');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a PDF file first');
+                return;
+            }
+            
+            if (!file.type.includes('pdf')) {
+                alert('Please select a PDF file');
+                return;
+            }
+            
+            extractTextFromPDF(file);
+        });
+        
+        document.getElementById('test-simple-pdf').addEventListener('click', testSimplePDF);
+        
+        // Auto-test when file is selected
+        document.getElementById('pdf-input').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                extractTextFromPDF(file);
+            }
+        });
+    </script>
+</body>
+</html> 

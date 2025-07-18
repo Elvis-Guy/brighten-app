@@ -8,123 +8,209 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import { BookOpenIcon, CloudUploadIcon } from '@/components/icons';
+import { curriculumContent } from '@/data/curriculumData';
+import type { CurriculumSubject } from '@/types';
 
-// Import curriculum data safely  
-import curriculumContent from '@/curriculum_content.json';
-
-interface CurriculumTopic {
-  topic: string;
-  content: string;
-}
-
-interface CurriculumSubject {
-  grade: number;  // Changed from string to number to match JSON
-  subject: string;
-  topics: CurriculumTopic[];
-}
-
-interface CurriculumData {
-  curriculum: {
-    [gradeKey: string]: {
-      [subjectKey: string]: CurriculumSubject;
-    };
-  };
-}
-
-interface SubjectCard {
-  id: string;
-  title: string;
-  topic: string;
-  description: string;
-  image: string;
-  grade: number;
-  lessons: number;
-  isCurrentlyLearning: boolean;
-  progress?: number;
-  currentTopicIndex?: number;
-  totalTopics?: number;
-  // Add content property to match CurrentLesson interface
-  content?: {
-    original: string;
-    simplified: string;
-    visualPrompt: string;
-  };
+// Import curriculum data safely
+let curriculumData: any = null;
+try {
+  curriculumData = require('@/curriculum_content.json');
+} catch (error) {
+  console.warn('Could not load curriculum data:', error);
 }
 
 const HomePage: React.FC = () => {
-  const { authState, currentEnrollment, getContinueLearningData, learningProgress, isProgressLoading, setCurrentEnrollment } = useAppContext();
+  const { setSelectedLesson, authState, currentEnrollment, getContinueLearningData, learningProgress, isProgressLoading } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
 
   const isAuthenticated = authState.isAuthenticated && !authState.isAnonymous;
   const userName = authState.user?.displayName || authState.user?.email?.split('@')[0] || 'Friend';
-  const curriculumData = curriculumContent as unknown as CurriculumData;
 
-  // Get Grade 10 subjects for unauthenticated users
-  const getGrade10Subjects = (): SubjectCard[] => {
-    if (!curriculumData?.curriculum?.grade_10) return [];
+  // Get current enrollment data FIRST
+  const getCurrentEnrollmentData = () => {
+    if (!currentEnrollment || !curriculumData) return null;
     
-    const subjects: SubjectCard[] = [];
-    const grade10Data = curriculumData.curriculum.grade_10;
+    const { grade, subject, topic } = currentEnrollment;
+    const subjectData = curriculumData.curriculum?.[grade]?.[subject];
+    const topicData = subjectData?.topics?.find((t: any) => t.topic === topic);
     
-    for (const [subjectKey, subjectData] of Object.entries(grade10Data)) {
-      const data = subjectData as CurriculumSubject;
+    if (subjectData && topicData) {
       const subjectImages = {
         mathematics: '/mathematics1.jpeg',
         science: '/science1.jpeg',
         english: '/english1.jpeg'
       };
       
-      subjects.push({
-        id: `grade_10_${subjectKey}`,
-        title: data.subject,
-        topic: data.topics[0]?.topic || 'Introduction',
-        description: data.topics[0]?.content?.substring(0, 150) + '...' || 'Learn the fundamentals.',
-        image: subjectImages[subjectKey as keyof typeof subjectImages] || '/science1.jpeg',
-        grade: 10,
-        lessons: data.topics?.length || 0,
-        isCurrentlyLearning: false
-      });
+      // Calculate actual progress based on topic position
+      const topicIndex = subjectData.topics.findIndex((t: any) => t.topic === topic);
+      const totalTopics = subjectData.topics.length;
+      const progressPercentage = Math.round(((topicIndex + 1) / totalTopics) * 100);
+      
+      return {
+        grade: subjectData.grade,
+        subject: subjectData.subject,
+        topic: topicData.topic,
+        description: topicData.content.substring(0, 150) + '...',
+        progress: progressPercentage,
+        image: subjectImages[subject as keyof typeof subjectImages] || '/science1.jpeg',
+        totalTopics: subjectData.topics.length,
+        currentTopicIndex: topicIndex,
+        topicContent: topicData.content
+      };
     }
     
-    return subjects;
+    return null;
   };
 
-  // Get recommended subjects for authenticated users (limited to 3)
-  const getAllCurriculumSubjects = (): SubjectCard[] => {
-    if (!curriculumData?.curriculum) return [];
+  const enrollmentData = getCurrentEnrollmentData();
+
+  // Get Grade 10 subjects for unauthenticated users
+  const getGrade10Subjects = () => {
+    if (!curriculumData || !curriculumData.curriculum || !curriculumData.curriculum.grade_10) {
+      return [];
+    }
+
+    const grade10 = curriculumData.curriculum.grade_10;
+    const subjects = [];
     
-    const subjects: SubjectCard[] = [];
+    const subjectOrder = ['mathematics', 'science', 'english'];
     const subjectImages = {
       mathematics: '/mathematics1.jpeg',
       science: '/science1.jpeg',
       english: '/english1.jpeg'
     };
-    
-    // Get subjects from all grades
-    for (const [gradeKey, gradeData] of Object.entries(curriculumData.curriculum || {})) {
-      const gradeNumber = parseInt(gradeKey.replace('grade_', ''));
-      
-      for (const [subjectKey, subjectData] of Object.entries(gradeData)) {
-        const data = subjectData as CurriculumSubject;
+
+    for (const subjectKey of subjectOrder) {
+      if (grade10[subjectKey]) {
+        const subjectData = grade10[subjectKey];
+        const firstTopic = subjectData.topics[0];
+        
         subjects.push({
-          id: `${gradeKey}_${subjectKey}`,
-          title: data.subject,
-          topic: data.topics[0]?.topic || 'Introduction',
-          description: data.topics[0]?.content?.substring(0, 150) + '...' || 'Learn the fundamentals.',
-          image: subjectImages[subjectKey as keyof typeof subjectImages] || '/science1.jpeg',
-          grade: gradeNumber,
-          lessons: data.topics?.length || 0,
-          isCurrentlyLearning: currentEnrollment?.subject === subjectKey && currentEnrollment?.grade === gradeKey
+          id: `grade_10_${subjectKey}`,
+          title: subjectData.subject,
+          lessons: subjectData.topics.length,
+          progress: 0,
+          topic: firstTopic.topic,
+          description: firstTopic.content.substring(0, 120) + '...',
+          image: subjectImages[subjectKey as keyof typeof subjectImages],
+          content: {
+            original: firstTopic.content,
+            simplified: "",
+            visualPrompt: subjectData.subject === 'Mathematics' ? 
+              `${firstTopic.topic} graph` : 
+              subjectData.subject === 'Science' ? 
+              `${firstTopic.topic} diagram` : 
+              `${firstTopic.topic} concept`
+          },
+          grade: 10,
+          subjectKey: subjectKey,
+          gradeKey: 'grade_10'
         });
       }
     }
     
-    // Return only the first 3 subjects for recommendations
-    return subjects.slice(0, 3);
+    return subjects;
+  };
+
+  // Get recommended subjects for authenticated users (3 subjects only)
+  const getAllCurriculumSubjects = () => {
+    if (!curriculumData || !curriculumData.curriculum) {
+      return [];
+    }
+
+    const subjects = [];
+    const subjectImages = {
+      mathematics: '/mathematics1.jpeg',
+      science: '/science1.jpeg',
+      english: '/english1.jpeg'
+    };
+
+    // First, add the user's current learning subject if they have one
+    if (currentEnrollment && enrollmentData) {
+      const currentSubject = {
+        id: `${currentEnrollment.grade}_${currentEnrollment.subject}`,
+        title: `${enrollmentData.subject} - Grade ${enrollmentData.grade}`,
+        lessons: enrollmentData.totalTopics,
+        progress: enrollmentData.progress,
+        topic: enrollmentData.topic,
+        description: enrollmentData.description,
+        image: enrollmentData.image,
+        content: {
+          original: enrollmentData.topicContent || '',
+          simplified: "",
+          visualPrompt: enrollmentData.subject === 'Mathematics' ? 
+            `${enrollmentData.topic} graph` : 
+            enrollmentData.subject === 'Science' ? 
+            `${enrollmentData.topic} diagram` : 
+            `${enrollmentData.topic} concept`
+        },
+        grade: enrollmentData.grade,
+        subjectKey: currentEnrollment.subject,
+        gradeKey: currentEnrollment.grade,
+        isCurrentlyLearning: true,
+        currentTopicIndex: enrollmentData.currentTopicIndex
+      };
+      subjects.push(currentSubject);
+    }
+
+    // Fill remaining slots with other recommendations (avoid duplicating current subject)
+    const remainingSlots = 3 - subjects.length;
+    const baseRecommendations = [
+      { grade: 'grade_10', subject: 'mathematics', gradeLabel: 'Grade 10' },
+      { grade: 'grade_11', subject: 'science', gradeLabel: 'Grade 11' },
+      { grade: 'grade_12', subject: 'english', gradeLabel: 'Grade 12' },
+      { grade: 'grade_10', subject: 'science', gradeLabel: 'Grade 10' },
+      { grade: 'grade_11', subject: 'english', gradeLabel: 'Grade 11' },
+      { grade: 'grade_12', subject: 'mathematics', gradeLabel: 'Grade 12' }
+    ];
+
+    // Filter out the current learning subject to avoid duplication
+    const availableRecommendations = baseRecommendations.filter(rec => {
+      if (currentEnrollment) {
+        return !(rec.grade === currentEnrollment.grade && rec.subject === currentEnrollment.subject);
+      }
+      return true;
+    });
+
+    // Add remaining recommendations
+    for (let i = 0; i < remainingSlots && i < availableRecommendations.length; i++) {
+      const rec = availableRecommendations[i];
+      const gradeData = curriculumData.curriculum[rec.grade];
+      
+      if (gradeData && gradeData[rec.subject]) {
+        const subjectData = gradeData[rec.subject];
+        const firstTopic = subjectData.topics[0];
+        
+        subjects.push({
+          id: `${rec.grade}_${rec.subject}`,
+          title: `${subjectData.subject} - ${rec.gradeLabel}`,
+          lessons: subjectData.topics.length,
+          progress: 0,
+          topic: firstTopic.topic,
+          description: firstTopic.content.substring(0, 120) + '...',
+          image: subjectImages[rec.subject as keyof typeof subjectImages],
+          content: {
+            original: firstTopic.content,
+            simplified: "",
+            visualPrompt: subjectData.subject === 'Mathematics' ? 
+              `${firstTopic.topic} graph` : 
+              subjectData.subject === 'Science' ? 
+              `${firstTopic.topic} diagram` : 
+              `${firstTopic.topic} concept`
+          },
+          grade: subjectData.grade,
+          subjectKey: rec.subject,
+          gradeKey: rec.grade,
+          isCurrentlyLearning: false
+        });
+      }
+    }
+    
+    return subjects;
   };
 
   // Filter subjects based on search term
-  const getFilteredSubjects = (): SubjectCard[] => {
+  const getFilteredSubjects = () => {
     if (isAuthenticated) {
       // For authenticated users, show all curriculum subjects from all grades
       const allSubjects = getAllCurriculumSubjects();
@@ -145,80 +231,62 @@ const HomePage: React.FC = () => {
   const filteredSubjects = getFilteredSubjects();
 
   const handleContinueLearning = () => {
-    try {
-      // If we have current enrollment, construct the lessonId and go directly to content
-      if (currentEnrollment) {
-        const { grade, subject, topic } = currentEnrollment;
-        
-        // Convert topic to the format used in lessonId (spaces to underscores, lowercase)
-        const topicFormatted = topic.toLowerCase().replace(/\s+/g, '_');
-        const lessonId = `${grade}_${subject}_${topicFormatted}`;
-        const url = `/content/${lessonId}`;
-        
-        window.location.href = url;
-        return;
+    // First, try to get continue learning data from progress system
+    const continueData = getContinueLearningData();
+    
+    if (continueData) {
+      // Use progress-based continue learning
+      const { lessonId } = continueData;
+      window.location.href = `/content/${lessonId}`;
+      return;
+    }
+    
+    // Fallback to enrollment-based continue learning
+    if (currentEnrollment) {
+      const { grade, subject, topic } = currentEnrollment;
+      // Create lesson ID that matches the format expected by the content page
+      const lessonId = `${grade}_${subject}_${topic.replace(/\s+/g, '_').toLowerCase()}`;
+      
+      // Set the selected lesson context if we have enrollment data
+      if (enrollmentData) {
+        const lesson = {
+          id: lessonId,
+          title: enrollmentData.subject,
+          lessons: enrollmentData.totalTopics,
+          progress: enrollmentData.progress,
+          topic: enrollmentData.topic,
+          description: `${enrollmentData.subject} - ${enrollmentData.topic}`,
+          image: enrollmentData.image,
+          content: {
+            original: enrollmentData.topicContent || '',
+            simplified: "",
+            visualPrompt: enrollmentData.subject === 'Mathematics' ? 
+              `${enrollmentData.topic} graph` : 
+              enrollmentData.subject === 'Science' ? 
+              `${enrollmentData.topic} diagram` : 
+              `${enrollmentData.topic} concept`
+          },
+          grade: enrollmentData.grade,
+          subjectKey: subject,
+          gradeKey: grade
+        };
+        setSelectedLesson(lesson);
       }
       
-      // If we have continue learning data, use that
-      const continueData = getContinueLearningData();
-      if (continueData) {
-        const url = `/content/${continueData.lessonId}`;
-        window.location.href = url;
-        return;
-      }
-      
-      // Fallback to curriculum page
-      window.location.href = '/curriculum';
-    } catch (error) {
-      console.error('Error in handleContinueLearning:', error);
-      alert(`Error occurred: ${error instanceof Error ? error.message : String(error)}`);
+      // Navigate to the content page
+      window.location.href = `/content/${lessonId}`;
     }
   };
 
-  const handleSubjectClick = (subject: SubjectCard) => {
+  const handleSubjectClick = (subject: any) => {
     if (isAuthenticated) {
       // For the currently learning subject, continue learning
       if (subject.isCurrentlyLearning) {
         handleContinueLearning();
       } else {
-        // For other subjects, navigate directly to the first topic
-        try {
-          // Parse the subject ID to get grade and subject info
-          const parts = subject.id.split('_');
-          if (parts.length >= 3) {
-            const gradeKey = `${parts[0]}_${parts[1]}` as 'grade_10' | 'grade_11' | 'grade_12';
-            const subjectKey = parts[2] as 'mathematics' | 'science' | 'english';
-            
-            // Get the subject data from curriculum
-            const subjectData = curriculumData.curriculum[gradeKey]?.[subjectKey];
-            if (subjectData && subjectData.topics.length > 0) {
-              // Get the first topic
-              const firstTopic = subjectData.topics[0];
-              
-              // Set current enrollment
-              setCurrentEnrollment({
-                grade: gradeKey,
-                subject: subjectKey,
-                topic: firstTopic.topic
-              });
-              
-              // Construct lessonId for the first topic
-              const topicFormatted = firstTopic.topic.toLowerCase().replace(/\s+/g, '_');
-              const lessonId = `${gradeKey}_${subjectKey}_${topicFormatted}`;
-              const url = `/content/${lessonId}`;
-              
-              window.location.href = url;
-              return;
-            }
-          }
-          
-          // Fallback to original behavior if parsing fails
-          window.location.href = `/content/${subject.id}`;
-        } catch (error) {
-          console.error('Error in handleSubjectClick:', error);
-          // Fallback to curriculum page on error
-          window.location.href = '/curriculum';
-        }
+        // For other subjects, set the lesson and navigate
+        setSelectedLesson(subject);
+        window.location.href = `/content/${subject.id}`;
       }
     } else {
       // For unauthenticated users, redirect to signup
@@ -229,7 +297,6 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-6 md:p-10 max-w-7xl mx-auto">
-        
         {/* Welcome Banner */}
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-8 md:p-12 rounded-2xl shadow-xl mb-8 relative overflow-hidden">
           {/* Decorative background elements */}
@@ -250,13 +317,13 @@ const HomePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               {isAuthenticated ? (
                 <>
-                  {(getContinueLearningData() || currentEnrollment) ? (
+                  {(getContinueLearningData() || enrollmentData) ? (
                     <button
                       onClick={handleContinueLearning}
                       className="flex items-center justify-center px-8 py-4 bg-white text-orange-500 font-bold rounded-full shadow-lg hover:bg-gray-50 hover:shadow-xl transition-all duration-300 text-lg"
                     >
                       <BookOpenIcon className="h-6 w-6 mr-3" /> 
-                      Continue Learning
+                      {getContinueLearningData() ? 'Continue Learning' : 'Continue Learning'}
                     </button>
                   ) : (
                     <Link href="/curriculum" passHref>
@@ -319,49 +386,48 @@ const HomePage: React.FC = () => {
                   </div>
                 )}
               
-                {/* Lessons Completed */}
-                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800">Lessons Completed</h3>
-                    <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <p className="text-2xl font-bold text-green-600 mb-1">
-                    {learningProgress?.lessonsCompleted.length || 0}
-                  </p>
-                  <p className="text-sm text-gray-600">Total completed</p>
+              {/* Lessons Completed */}
+              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-800">Lessons Completed</h3>
+                  <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
                 </div>
-
-                {/* Learning Streak */}
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800">Learning Streak</h3>
-                    <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-600 mb-1">
-                    {learningProgress?.streakDays || 0}
-                  </p>
-                  <p className="text-sm text-gray-600">Days in a row</p>
-                </div>
-
-                {/* Total Time */}
-                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800">Time Learned</h3>
-                    <svg className="h-5 w-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <p className="text-2xl font-bold text-purple-600 mb-1">
-                    {Math.round((learningProgress?.totalTimeSpentMinutes || 0) / 60) || 0}h
-                  </p>
-                  <p className="text-sm text-gray-600">Total hours</p>
-                </div>
+                <p className="text-2xl font-bold text-green-600 mb-1">
+                  {learningProgress?.lessonsCompleted.length || 0}
+                </p>
+                <p className="text-sm text-gray-600">Total completed</p>
               </div>
-            )}
+
+              {/* Learning Streak */}
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-800">Learning Streak</h3>
+                  <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 mb-1">
+                  {learningProgress?.streakDays || 0}
+                </p>
+                <p className="text-sm text-gray-600">Days in a row</p>
+              </div>
+
+              {/* Total Time */}
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-800">Time Learned</h3>
+                  <svg className="h-5 w-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-2xl font-bold text-purple-600 mb-1">
+                  {Math.round((learningProgress?.totalTimeSpentMinutes || 0) / 60) || 0}h
+                </p>
+                <p className="text-sm text-gray-600">Total hours</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -371,14 +437,14 @@ const HomePage: React.FC = () => {
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
                 {isAuthenticated 
-                  ? (currentEnrollment ? 'Your Learning & Top Recommendations' : 'Top 3 Recommended for You')
+                  ? (currentEnrollment ? 'Your Learning & Recommendations' : 'Recommended for You')
                   : 'Grade 10 Curriculum Preview'}
               </h2>
               {isAuthenticated ? (
                 <p className="text-gray-600 mt-2">
                   {currentEnrollment 
-                    ? 'Continue your current studies and explore these 3 subjects curated for you.'
-                    : 'Top 3 hand-picked subjects to get you started. Browse the full curriculum to explore more.'
+                    ? 'Continue your current studies and explore new subjects curated for you.'
+                    : 'Hand-picked subjects to get you started. Browse the full curriculum to explore more.'
                   }
                 </p>
               ) : (
@@ -405,7 +471,7 @@ const HomePage: React.FC = () => {
 
           {/* Subject Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSubjects.map((subject: SubjectCard) => (
+            {filteredSubjects.map((subject: any) => (
               <div key={subject.id} className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden border ${subject.isCurrentlyLearning ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}>
                 <div className="relative">
                   <img 
@@ -448,16 +514,16 @@ const HomePage: React.FC = () => {
                   </p>
                   
                   {/* Progress Bar for Currently Learning Subject */}
-                  {subject.isCurrentlyLearning && (subject.progress || 0) > 0 && (
+                  {subject.isCurrentlyLearning && subject.progress > 0 && (
                     <div className="mb-4">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-gray-700">Your Progress</span>
-                        <span className="text-sm font-medium text-green-600">{subject.progress || 0}%</span>
+                        <span className="text-sm font-medium text-green-600">{subject.progress}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                          style={{ width: `${subject.progress || 0}%` }}
+                          style={{ width: `${subject.progress}%` }}
                         ></div>
                       </div>
                       <div className="mt-2 text-xs text-gray-500">
@@ -607,14 +673,6 @@ const HomePage: React.FC = () => {
                 <p className="text-gray-600 text-sm">Customize your experience</p>
               </div>
             </Link>
-          </div>
-        )}
-
-        {/* Basic section for unauthenticated users */}
-        {!isAuthenticated && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Get Started</h2>
-            <p className="text-gray-600">Please sign in to access your learning progress and curriculum.</p>
           </div>
         )}
       </div>

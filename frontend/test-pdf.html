@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF.js Test</title>
+</head>
+<body>
+    <h1>PDF.js Test Page</h1>
+    <input type="file" id="pdfInput" accept=".pdf">
+    <div id="output"></div>
+    
+    <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script>
+        // Set up PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        
+        document.getElementById('pdfInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Processing...</p>';
+            
+            try {
+                console.log('Starting PDF test...');
+                const arrayBuffer = await file.arrayBuffer();
+                console.log('ArrayBuffer created');
+                
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                console.log('PDF loaded, pages:', pdf.numPages);
+                
+                let text = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    text += pageText + '\n\n';
+                    console.log(`Page ${i} processed`);
+                }
+                
+                output.innerHTML = `
+                    <h3>Success!</h3>
+                    <p><strong>Pages:</strong> ${pdf.numPages}</p>
+                    <p><strong>Text length:</strong> ${text.length}</p>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; white-space: pre-wrap;">${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}</div>
+                `;
+            } catch (error) {
+                console.error('PDF test failed:', error);
+                output.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html> 

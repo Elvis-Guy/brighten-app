@@ -4,6 +4,20 @@
 // ============================================================================
 // These are utility functions, not React components, so no "use client" needed.
 // They will be called from client components.
+//
+// IMAGE GENERATION APIs - OPTIMIZED FOR DYSLEXIC STUDENTS:
+// - generateVisualizationHF: FREE Hugging Face API (1000 images/month)
+// - generateVisualizationReplicate: Premium Replicate API (~$0.002/image)
+// - generateVisualization: Default (uses HF for backward compatibility)
+// 
+// All prompts are enhanced for SINGLE-CONCEPT, minimal diagrams:
+// ✓ ONE main concept only (no multiple examples)
+// ✓ Pure white background with clean layout
+// ✓ Simple coordinate grids for math (like textbook style)
+// ✓ Bold colored lines (blue/red/green) - dyslexia friendly
+// ✓ Large clear labels, minimal text, no complex formulas
+// ✓ Uncluttered, minimalist design for easy understanding
+// ============================================================================
 import type { CurriculumSubject } from '@/types';
 
 export const callLocalSimplificationAPI = async (
@@ -116,28 +130,77 @@ export const callGeminiAPI = async (
   }
 };
 
-export const generateVisualization = async (
+// Hugging Face Image Generation (FREE tier - 1000 requests/month)
+export const generateVisualizationHF = async (
   visualPrompt: string,
   setLoadingText: React.Dispatch<React.SetStateAction<string>>,
   setSelectedLesson: React.Dispatch<React.SetStateAction<CurriculumSubject | null>>,
   customAlert: (message: string) => void
 ): Promise<void> => {
-  setLoadingText('Generating visualization...');
+  setLoadingText('Generating educational visualization...');
   try {
-    const apiKey = ""; // Canvas will automatically provide this
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-    const payload = { instances: { prompt: visualPrompt }, parameters: { "sampleCount": 1 } };
+    // Ultra-simple prompt - less is more for minimal diagrams
+    const educationalPrompt = `${visualPrompt}. White background. Single concept only. No text. No clutter. Minimal. Clean. Educational diagram.`;
+    
+    const HF_API_KEY = process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "hf_demo"; // Add your HF API key to .env.local
+    
+    if (!HF_API_KEY || HF_API_KEY === "hf_demo") {
+      customAlert("Please add your Hugging Face API key to .env.local file. See .env.local.example for instructions.");
+      setLoadingText('');
+      return;
+    }
+    
+    // Try multiple models that are known to work with Hugging Face Inference API
+    // Order matters - we try the best working models first
+    const models = [
+      "stabilityai/stable-diffusion-xl-base-1.0", // ✅ Confirmed working
+      "stabilityai/stable-diffusion-2-1",
+      "runwayml/stable-diffusion-v1-5"
+    ];
+    
+    let imageUrl = null;
+    let lastError = null;
+    
+    for (const model of models) {
+      try {
+        const response = await fetch(
+          `https://api-inference.huggingface.co/models/${model}`,
+          {
+            headers: {
+              Authorization: `Bearer ${HF_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+            body: JSON.stringify({
+              inputs: educationalPrompt,
+              options: { 
+                wait_for_model: true,
+                use_cache: false 
+              }
+            }),
+          }
+        );
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const result = await response.json();
-    setLoadingText('');
-
-    if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
-      const imageUrl: string = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+        if (response.ok) {
+          const imageBlob = await response.blob();
+          
+          // Check if we got a valid image
+          if (imageBlob.size > 0 && imageBlob.type.startsWith('image/')) {
+            imageUrl = URL.createObjectURL(imageBlob);
+            break; // Success! Exit the loop
+          }
+        } else {
+          lastError = new Error(`HTTP error! status: ${response.status} for model: ${model}`);
+        }
+      } catch (error) {
+        lastError = error;
+        console.log(`Failed with model ${model}:`, error);
+        // Continue to next model
+      }
+    }
+    
+    if (imageUrl) {
+      setLoadingText('');
       setSelectedLesson(prev => {
         if (prev) {
           return {
@@ -148,12 +211,105 @@ export const generateVisualization = async (
         return null;
       });
     } else {
-      console.error("Unexpected image generation API response structure:", result);
+      throw lastError || new Error("All models failed to generate image");
+    }
+  } catch (error) {
+    console.error("Error generating image with Hugging Face:", error);
+    setLoadingText('');
+    
+    if (error instanceof Error) {
+      if (error.message.includes('404')) {
+        customAlert("Model not found. The Hugging Face model may be temporarily unavailable. Please try again later or contact support.");
+      } else if (error.message.includes('401')) {
+        customAlert("Invalid API key. Please check your Hugging Face API key in .env.local file.");
+      } else if (error.message.includes('429')) {
+        customAlert("Rate limit exceeded. You've reached the free tier limit of 1000 images per month. Please wait or upgrade to a paid plan.");
+      } else {
+        customAlert(`Image generation failed: ${error.message}. Please try again.`);
+      }
+    } else {
+      customAlert("An error occurred during image generation. Please try again.");
+    }
+  }
+};
+
+// Alternative: Replicate API (Pay-per-use, very cost-efficient)
+export const generateVisualizationReplicate = async (
+  visualPrompt: string,
+  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
+  setSelectedLesson: React.Dispatch<React.SetStateAction<CurriculumSubject | null>>,
+  customAlert: (message: string) => void
+): Promise<void> => {
+  setLoadingText('Generating high-quality visualization...');
+  try {
+    const educationalPrompt = `${visualPrompt}. White background. Single concept only. No text. No clutter. Minimal. Clean. Educational diagram.`;
+    
+    const REPLICATE_API_TOKEN = process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN;
+    
+    if (!REPLICATE_API_TOKEN) {
+      customAlert("Replicate API token not configured. Please add NEXT_PUBLIC_REPLICATE_API_TOKEN to your .env.local file.");
+      setLoadingText('');
+      return;
+    }
+
+    const response = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4", // FLUX.1 Schnell
+        input: {
+          prompt: educationalPrompt,
+          aspect_ratio: "16:9",
+          output_format: "webp",
+          output_quality: 80,
+          num_inference_steps: 4 // Fast generation
+        },
+      }),
+    });
+
+    const prediction = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(prediction.detail || "Failed to start image generation");
+    }
+
+    // Poll for completion
+    let result = prediction;
+    while (result.status === "starting" || result.status === "processing") {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
+        headers: {
+          Authorization: `Token ${REPLICATE_API_TOKEN}`,
+        },
+      });
+      result = await statusResponse.json();
+    }
+
+    setLoadingText('');
+
+    if (result.status === "succeeded" && result.output && result.output.length > 0) {
+      setSelectedLesson(prev => {
+        if (prev) {
+          return {
+            ...prev,
+            visual: result.output[0]
+          };
+        }
+        return null;
+      });
+    } else {
+      console.error("Image generation failed:", result);
       customAlert("Failed to generate visualization. Please try again.");
     }
   } catch (error) {
-    console.error("Error generating image:", error);
+    console.error("Error generating image with Replicate:", error);
     setLoadingText('');
     customAlert("An error occurred during image generation. Please try again.");
   }
 };
+
+// Legacy function (keep for backward compatibility)
+export const generateVisualization = generateVisualizationHF;

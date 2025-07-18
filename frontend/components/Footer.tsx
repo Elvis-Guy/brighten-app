@@ -60,6 +60,8 @@ const Footer = () => {
           <li><a href="#" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Dyslexia Support</a></li>
           <li><a href="#" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Teacher Resources</a></li>
           <li><a href="#" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Parent Guide</a></li>
+          <li><Link href="/privacy" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Privacy Policy</button></Link></li>
+          <li><Link href="/terms" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Terms of Service</button></Link></li>
         </ul>
       </div>
 

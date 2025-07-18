@@ -169,6 +169,7 @@ export interface UserPreferences {
     setSelectedLesson: React.Dispatch<React.SetStateAction<CurrentLesson | null>>;
     userPreferences: UserPreferences;
     setUserPreferences: React.Dispatch<React.SetStateAction<UserPreferences>>;
+    isPreferencesLoaded: boolean;
     userId: string | null;
     isAuthReady: boolean;
     authState: AuthState;
@@ -176,6 +177,8 @@ export interface UserPreferences {
     signUp: (email: string, password: string, displayName: string) => Promise<void>;
     signOut: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
+    changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+    deleteAccount: (password: string) => Promise<void>;
     showPasteTextModal: boolean;
     setShowPasteTextModal: React.Dispatch<React.SetStateAction<boolean>>;
     pasteTextContent: string;
@@ -199,10 +202,10 @@ export interface UserPreferences {
     // Learning Progress Management
     learningProgress: LearningProgress | null;
     setLearningProgress: React.Dispatch<React.SetStateAction<LearningProgress | null>>;
+    isProgressLoading: boolean;
     updateLessonProgress: (lessonId: string, progressData: Partial<LessonProgress>) => Promise<void>;
     markLessonComplete: (lessonId: string) => Promise<void>;
     saveLearningProgress: () => Promise<void>;
-    loadLearningProgress: () => Promise<void>;
     getContinueLearningData: () => { lessonId: string; progress: LessonProgress } | null;
     // Admin Management
     adminPermissions: AdminPermissions | null;

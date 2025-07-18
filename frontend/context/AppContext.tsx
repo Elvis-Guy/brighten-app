@@ -6,7 +6,7 @@
 // ============================================================================
 "use client";
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -18,7 +18,11 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged, 
   Auth,
-  updateProfile
+  updateProfile,
+  updatePassword,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, Firestore, collection, addDoc, updateDoc, deleteDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import type { UserPreferences, CurrentLesson, AppContextType, User, AuthState, LearningProgress, LessonProgress, AdminPermissions, CurriculumGrade, CurriculumSubjectAdmin, CurriculumTopicAdmin } from '@/types'; // Import types
@@ -85,11 +89,38 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppContextProvider({ children }: { children: React.ReactNode }) {
   const [selectedLesson, setSelectedLesson] = useState<CurrentLesson | null>(null);
   const [userPreferences, setUserPreferences] = useState<UserPreferences>(defaultPreferences);
+  const [isPreferencesLoaded, setIsPreferencesLoaded] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
+  const [isUserAnonymous, setIsUserAnonymous] = useState<boolean>(true);
   const [showPasteTextModal, setShowPasteTextModal] = useState<boolean>(false);
   const [pasteTextContent, setPasteTextContent] = useState<string>('');
   const [loadingText, setLoadingText] = useState<string>('');
+  
+  // Debounced Firebase sync with quota protection
+  const firebaseSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSyncedDataRef = useRef<string>('');
+  const isSyncingRef = useRef<boolean>(false);
+  const lastSyncTimeRef = useRef<number>(0);
+  const quotaExhaustedRef = useRef<boolean>(false);
+  
+  // localStorage throttling
+  const lastLocalSaveRef = useRef<{[key: string]: number}>({});
+  const localSaveThrottleMs = 5000; // Throttle localStorage saves to every 5 seconds per key
+  
+  // Throttled localStorage save function
+  const saveToLocalStorageThrottled = useCallback((key: string, data: any) => {
+    const now = Date.now();
+    const lastSave = lastLocalSaveRef.current[key] || 0;
+    
+    if (now - lastSave >= localSaveThrottleMs) {
+      localStorage.setItem(key, JSON.stringify(data));
+      lastLocalSaveRef.current[key] = now;
+      console.log(`💾 LocalStorage saved for key: ${key}`);
+    } else {
+      console.log(`⏱️ LocalStorage save throttled for key: ${key}`);
+    }
+  }, [localSaveThrottleMs]);
   
   // New state for current enrollment
   const [currentEnrollment, setCurrentEnrollment] = useState<{
@@ -100,6 +131,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   
   // Learning Progress state
   const [learningProgress, setLearningProgress] = useState<LearningProgress | null>(null);
+  const [isProgressLoading, setIsProgressLoading] = useState<boolean>(true);
   
   // Admin state
   const [adminPermissions, setAdminPermissions] = useState<AdminPermissions | null>(null);
@@ -225,6 +257,58 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     await signInAnonymously(authInstance);
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    if (!authInstance || !authInstance.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const user = authInstance.currentUser;
+    if (!user.email) {
+      throw new Error('User email not available');
+    }
+
+    // Re-authenticate the user with current password
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+
+    // Update password
+    await updatePassword(user, newPassword);
+  };
+
+  const deleteAccount = async (password: string): Promise<void> => {
+    if (!authInstance || !authInstance.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    const user = authInstance.currentUser;
+    if (!user.email) {
+      throw new Error('User email not available');
+    }
+
+    // Re-authenticate the user
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
+
+    // Delete user data from Firestore
+    if (dbInstance) {
+      try {
+        // Delete user document
+        await deleteDoc(doc(dbInstance, `users/${user.uid}`));
+        // Delete user progress document
+        await deleteDoc(doc(dbInstance, `users/${user.uid}/progress/learning_progress`));
+      } catch (error) {
+        console.error('Error deleting user data from Firestore:', error);
+        // Continue with account deletion even if Firestore cleanup fails
+      }
+    }
+
+    // Delete the user account
+    await deleteUser(user);
+    
+    // After deletion, sign in anonymously
+    await signInAnonymously(authInstance);
+  };
+
   // Learning Progress Management Functions
   const saveLearningProgress = async (): Promise<void> => {
     if (!learningProgress || !userId) return;
@@ -235,64 +319,109 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         const progressDocRef = doc(dbInstance, `users/${userId}/progress/learning_progress`);
         await setDoc(progressDocRef, learningProgress);
       } else {
-        // Fallback to localStorage
-        localStorage.setItem(`brighten_progress_${userId}`, JSON.stringify(learningProgress));
+        // Fallback to localStorage with throttling
+        saveToLocalStorageThrottled(`brighten_progress_${userId}`, learningProgress);
       }
     } catch (error) {
       console.error("Error saving learning progress:", error);
       // Fallback to localStorage if Firebase fails
       if (userId) {
-        localStorage.setItem(`brighten_progress_${userId}`, JSON.stringify(learningProgress));
+        saveToLocalStorageThrottled(`brighten_progress_${userId}`, learningProgress);
       }
     }
   };
 
-  const loadLearningProgress = async (): Promise<void> => {
-    if (!userId) return;
+  // Debounced Firebase sync function with aggressive throttling
+  const scheduleFirebaseSync = useCallback(() => {
+    // Skip Firebase sync if disabled or in development mode (direct environment check)
+    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DISABLE_FIREBASE_SYNC === 'true') {
+      console.log('🚫 Firebase sync disabled');
+      return;
+    }
 
-    try {
-      if (dbInstance) {
-        // Try to load from Firebase first
-        const progressDocRef = doc(dbInstance, `users/${userId}/progress/learning_progress`);
-        const docSnap = await getDoc(progressDocRef);
-        
-        if (docSnap.exists()) {
-          const progressData = docSnap.data() as LearningProgress;
-          setLearningProgress(progressData);
-          return;
-        }
+    // Only sync for authenticated users with Firebase available
+    // Anonymous users should NOT sync to Firebase to prevent quota exhaustion
+    if (!dbInstance || !userId || authState.isAnonymous || isSyncingRef.current || quotaExhaustedRef.current) {
+      if (authState.isAnonymous) {
+        console.log('🚫 Firebase sync skipped for anonymous user');
       }
-      
-      // Fallback to localStorage
-      const localProgress = localStorage.getItem(`brighten_progress_${userId}`);
-      if (localProgress) {
-        const progressData = JSON.parse(localProgress) as LearningProgress;
-        setLearningProgress(progressData);
-        return;
-      }
-      
-      // If no progress found, initialize with default
-      setLearningProgress(defaultLearningProgress);
-    } catch (error) {
-      console.error("Error loading learning progress:", error);
-      // Try localStorage as fallback
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastSync = now - lastSyncTimeRef.current;
+    const minTimeBetweenSyncs = 60000; // Minimum 60 seconds between syncs
+
+    // Enforce minimum time between syncs
+    if (timeSinceLastSync < minTimeBetweenSyncs) {
+      console.log(`⏱️ Firebase sync throttled. ${Math.round((minTimeBetweenSyncs - timeSinceLastSync) / 1000)}s remaining`);
+      return;
+    }
+
+    // Clear existing timeout
+    if (firebaseSyncTimeoutRef.current) {
+      clearTimeout(firebaseSyncTimeoutRef.current);
+    }
+
+    // Schedule new sync after 30 seconds of inactivity (increased from 5 seconds)
+    firebaseSyncTimeoutRef.current = setTimeout(async () => {
       try {
+        isSyncingRef.current = true;
         const localProgress = localStorage.getItem(`brighten_progress_${userId}`);
-        if (localProgress) {
-          const progressData = JSON.parse(localProgress) as LearningProgress;
-          setLearningProgress(progressData);
-        } else {
-          setLearningProgress(defaultLearningProgress);
+        
+        if (localProgress && localProgress !== lastSyncedDataRef.current) {
+          const progressDocRef = doc(dbInstance, `users/${userId}/progress/learning_progress`);
+          await setDoc(progressDocRef, JSON.parse(localProgress));
+          lastSyncedDataRef.current = localProgress;
+          lastSyncTimeRef.current = Date.now();
+          console.log('✅ Firebase sync completed successfully');
         }
-      } catch {
-        setLearningProgress(defaultLearningProgress);
+      } catch (error: any) {
+        console.error("❌ Error syncing to Firebase:", error);
+        
+        // Handle quota exhaustion
+        if (error?.code === 'resource-exhausted' || error?.message?.includes('Quota exceeded')) {
+          quotaExhaustedRef.current = true;
+          console.warn('🚫 Firebase quota exhausted. Disabling sync for this session.');
+          
+          // Re-enable after 10 minutes
+          setTimeout(() => {
+            quotaExhaustedRef.current = false;
+            console.log('✅ Firebase sync re-enabled after quota cooldown');
+          }, 600000); // 10 minutes
+        }
+      } finally {
+        isSyncingRef.current = false;
       }
-    }
-  };
+    }, 30000); // 30 second debounce (increased from 5 seconds)
+  }, [dbInstance, userId, authState.isAnonymous]); // Removed disableFirebaseSync dependency
 
-  const updateLessonProgress = async (lessonId: string, progressData: Partial<LessonProgress>): Promise<void> => {
-    if (!learningProgress) return;
+  // Function to update current enrollment and save it to progress
+  const updateCurrentEnrollment = useCallback(async (enrollment: { grade: string; subject: string; topic: string } | null): Promise<void> => {
+    setCurrentEnrollment(enrollment);
+    
+    // Also update the learning progress with the enrollment
+    setLearningProgress(prev => {
+      if (!prev) return null;
+      
+      const updatedProgress = {
+        ...prev,
+        currentEnrollment: enrollment,
+        lastAccessedAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage with throttling, schedule Firebase sync
+      if (userId) {
+        saveToLocalStorageThrottled(`brighten_progress_${userId}`, updatedProgress);
+        // Direct Firebase sync call without dependency
+        setTimeout(() => scheduleFirebaseSync(), 0);
+      }
+      
+      return updatedProgress;
+    });
+  }, [userId, saveToLocalStorageThrottled]); // Removed scheduleFirebaseSync dependency
 
+  const updateLessonProgress = useCallback(async (lessonId: string, progressData: Partial<LessonProgress>): Promise<void> => {
     const currentTime = new Date().toISOString();
     const currentDate = currentTime.split('T')[0];
     
@@ -345,27 +474,18 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         }
       };
 
-      // Auto-save after updating
-      setTimeout(() => {
-        if (dbInstance && userId) {
-          const progressDocRef = doc(dbInstance, `users/${userId}/progress/learning_progress`);
-          setDoc(progressDocRef, updatedLearningProgress).catch(error => {
-            console.error("Error auto-saving progress:", error);
-            // Fallback to localStorage
-            localStorage.setItem(`brighten_progress_${userId}`, JSON.stringify(updatedLearningProgress));
-          });
-        } else if (userId) {
-          localStorage.setItem(`brighten_progress_${userId}`, JSON.stringify(updatedLearningProgress));
-        }
-      }, 1000); // Debounce auto-save by 1 second
+      // Save to localStorage with throttling, schedule Firebase sync
+      if (userId) {
+        saveToLocalStorageThrottled(`brighten_progress_${userId}`, updatedLearningProgress);
+        // Direct Firebase sync call without dependency
+        setTimeout(() => scheduleFirebaseSync(), 0);
+      }
 
       return updatedLearningProgress;
     });
-  };
+  }, [userId, saveToLocalStorageThrottled]); // Removed scheduleFirebaseSync dependency
 
-  const markLessonComplete = async (lessonId: string): Promise<void> => {
-    if (!learningProgress) return;
-
+  const markLessonComplete = useCallback(async (lessonId: string): Promise<void> => {
     setLearningProgress(prev => {
       if (!prev) return null;
 
@@ -383,23 +503,16 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         }
       };
 
-      // Auto-save completion
-      setTimeout(async () => {
-        try {
-          if (dbInstance && userId) {
-            const progressDocRef = doc(dbInstance, `users/${userId}/progress/learning_progress`);
-            await setDoc(progressDocRef, updatedProgress);
-          } else if (userId) {
-            localStorage.setItem(`brighten_progress_${userId}`, JSON.stringify(updatedProgress));
-          }
-        } catch (error) {
-          console.error("Error saving lesson completion:", error);
-        }
-      }, 100);
+      // Save to localStorage with throttling, schedule Firebase sync
+      if (userId) {
+        saveToLocalStorageThrottled(`brighten_progress_${userId}`, updatedProgress);
+        // Direct Firebase sync call without dependency
+        setTimeout(() => scheduleFirebaseSync(), 0);
+      }
 
       return updatedProgress;
     });
-  };
+  }, [userId, saveToLocalStorageThrottled]); // Removed scheduleFirebaseSync dependency
 
   const getContinueLearningData = (): { lessonId: string; progress: LessonProgress } | null => {
     if (!learningProgress) return null;
@@ -700,16 +813,118 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  // Helper function to get or create persistent anonymous user ID
+  const getOrCreateAnonymousUserId = (): string => {
+    const storageKey = 'brighten_anonymous_user_id';
+    let anonymousUserId = localStorage.getItem(storageKey);
+    
+    if (!anonymousUserId) {
+      anonymousUserId = `anon_${crypto.randomUUID()}`;
+      localStorage.setItem(storageKey, anonymousUserId);
+    }
+    
+    return anonymousUserId;
+  };
+
+
+
+  // Memoized helper function to load preferences for a user
+  const loadUserPreferences = useCallback(async (uid: string, isAnonymous: boolean): Promise<void> => {
+    try {
+      if (isAnonymous) {
+        // For anonymous users, load from localStorage
+        const localPrefs = localStorage.getItem(`brighten_preferences_${uid}`);
+        if (localPrefs) {
+          setUserPreferences({ ...defaultPreferences, ...JSON.parse(localPrefs) });
+        }
+      } else if (dbInstance) {
+        // For authenticated users, load from Firestore - use same path as settings page
+        const appId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'brighten-app';
+        const userDocRef = doc(dbInstance, `artifacts/${appId}/users/${uid}/preferences/user_settings`);
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          setUserPreferences({ ...defaultPreferences, ...docSnap.data() } as UserPreferences);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user preferences:", error);
+    } finally {
+      setIsPreferencesLoaded(true);
+    }
+  }, [dbInstance]);
+
+  // Memoized helper function to load learning progress for a user
+  const loadUserLearningProgress = useCallback(async (uid: string, isAnonymous: boolean): Promise<void> => {
+    setIsProgressLoading(true);
+    
+    try {
+      let progressData: LearningProgress | null = null;
+      
+      if (isAnonymous || !dbInstance) {
+        // For anonymous users or offline mode, load from localStorage
+        const localProgress = localStorage.getItem(`brighten_progress_${uid}`);
+        if (localProgress) {
+          progressData = JSON.parse(localProgress) as LearningProgress;
+        }
+      } else {
+        // For authenticated users, try Firestore first, then localStorage
+        try {
+          const progressDocRef = doc(dbInstance, `users/${uid}/progress/learning_progress`);
+          const docSnap = await getDoc(progressDocRef);
+          
+          if (docSnap.exists()) {
+            progressData = docSnap.data() as LearningProgress;
+          } else {
+            // Fallback to localStorage
+            const localProgress = localStorage.getItem(`brighten_progress_${uid}`);
+            if (localProgress) {
+              progressData = JSON.parse(localProgress) as LearningProgress;
+            }
+          }
+        } catch (firestoreError) {
+          console.error("Error loading progress from Firestore:", firestoreError);
+          // Fallback to localStorage
+          const localProgress = localStorage.getItem(`brighten_progress_${uid}`);
+          if (localProgress) {
+            progressData = JSON.parse(localProgress) as LearningProgress;
+          }
+        }
+      }
+      
+      if (progressData) {
+        setLearningProgress(progressData);
+        // Restore current enrollment from progress data
+        if (progressData.currentEnrollment) {
+          setCurrentEnrollment(progressData.currentEnrollment);
+        }
+      } else {
+        // Initialize with default progress
+        setLearningProgress(defaultLearningProgress);
+      }
+    } catch (error) {
+      console.error("Error loading learning progress:", error);
+      setLearningProgress(defaultLearningProgress);
+    } finally {
+      setIsProgressLoading(false);
+    }
+  }, [dbInstance]);
+
   // Firebase Auth and Firestore setup
   useEffect(() => {
     if (!authInstance || !dbInstance) {
       console.warn("Firebase not initialized. Running in offline mode.");
-      // Generate a temporary user ID for offline mode
-      const tempUserId = crypto.randomUUID();
-      setUserId(tempUserId);
+      // Use persistent anonymous user ID for offline mode
+      const persistentUserId = getOrCreateAnonymousUserId();
+      setUserId(persistentUserId);
+      setIsUserAnonymous(true);
+      
+      // Load preferences and progress for offline mode
+      loadUserPreferences(persistentUserId, true);
+      loadUserLearningProgress(persistentUserId, true);
+      
       setAuthState({
         user: {
-          uid: tempUserId,
+          uid: persistentUserId,
           email: null,
           displayName: null,
           photoURL: null,
@@ -717,77 +932,86 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         },
         isAuthenticated: true,
         isAnonymous: true,
-        isLoading: false
+        isLoading: false,
+        isAdmin: false,
+        isSuperAdmin: false
       });
       setIsAuthReady(true);
-      return;
+      return; // Early return for offline mode
     }
 
     const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
-      if (user) {
-        const mappedUser = mapFirebaseUser(user);
-        const { role, permissions } = await checkUserRole(user);
-        
-        // Update mapped user with role
-        mappedUser.role = role as 'student' | 'admin' | 'super_admin';
-        
-        setUserId(user.uid);
-        setAdminPermissions(permissions);
-        setAuthState({
-          user: mappedUser,
-          isAuthenticated: true,
-          isAnonymous: user.isAnonymous,
-          isLoading: false,
-          isAdmin: role === 'admin' || role === 'super_admin',
-          isSuperAdmin: role === 'super_admin'
-        });
-
-        try {
-          // Try to load user preferences from Firestore
-          const userDocRef = doc(dbInstance, `users/${user.uid}/preferences/user_settings`);
-          const docSnap = await getDoc(userDocRef);
-          if (docSnap.exists()) {
-            setUserPreferences({ ...defaultPreferences, ...docSnap.data() } as UserPreferences);
+        if (user) {
+          const mappedUser = mapFirebaseUser(user);
+          const { role, permissions } = await checkUserRole(user);
+          
+          // Update mapped user with role
+          mappedUser.role = role as 'student' | 'admin' | 'super_admin';
+          
+          // For anonymous users from Firebase, use persistent ID if available
+          let finalUserId = user.uid;
+          if (user.isAnonymous) {
+            const persistentId = getOrCreateAnonymousUserId();
+            finalUserId = persistentId;
+            mappedUser.uid = persistentId;
           }
           
-          // Load learning progress
-          await loadLearningProgress();
-        } catch (error) {
-          console.error("Error loading user data:", error);
-          // Still try to load progress even if preferences fail
+          setUserId(finalUserId);
+          setIsUserAnonymous(user.isAnonymous);
+          setAdminPermissions(permissions);
+          setAuthState({
+            user: mappedUser,
+            isAuthenticated: true,
+            isAnonymous: user.isAnonymous,
+            isLoading: false,
+            isAdmin: role === 'admin' || role === 'super_admin',
+            isSuperAdmin: role === 'super_admin'
+          });
+
+          // Load preferences and progress using the helper functions
+          await loadUserPreferences(finalUserId, user.isAnonymous);
+          await loadUserLearningProgress(finalUserId, user.isAnonymous);
+        } else {
           try {
-            await loadLearningProgress();
-          } catch (progressError) {
-            console.error("Error loading learning progress:", progressError);
+            // Sign in anonymously if no user is logged in
+            await signInAnonymously(authInstance);
+          } catch (error) {
+            console.error("Error signing in anonymously:", error);
+            // Fallback to persistent anonymous user ID
+            const persistentUserId = getOrCreateAnonymousUserId();
+            setUserId(persistentUserId);
+            setIsUserAnonymous(true);
+            
+            // Load preferences and progress for fallback mode
+            await loadUserPreferences(persistentUserId, true);
+            await loadUserLearningProgress(persistentUserId, true);
+            
+            setAuthState({
+              user: {
+                uid: persistentUserId,
+                email: null,
+                displayName: null,
+                photoURL: null,
+                isAnonymous: true
+              },
+              isAuthenticated: true,
+              isAnonymous: true,
+              isLoading: false,
+              isAdmin: false,
+              isSuperAdmin: false
+            });
           }
         }
-      } else {
-        try {
-          // Sign in anonymously if no user is logged in
-          await signInAnonymously(authInstance);
-        } catch (error) {
-          console.error("Error signing in anonymously:", error);
-          // Fallback to generating a random user ID
-          const tempUserId = crypto.randomUUID();
-          setUserId(tempUserId);
-          setAuthState({
-            user: {
-              uid: tempUserId,
-              email: null,
-              displayName: null,
-              photoURL: null,
-              isAnonymous: true
-            },
-            isAuthenticated: true,
-            isAnonymous: true,
-            isLoading: false
-          });
-        }
-      }
-      setIsAuthReady(true);
-    });
+        setIsAuthReady(true);
+      });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      // Clear any pending Firebase sync
+      if (firebaseSyncTimeoutRef.current) {
+        clearTimeout(firebaseSyncTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Apply user preferences to body style
@@ -799,33 +1023,42 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     document.body.style.color = userPreferences.textColor;
   }, [userPreferences]);
 
-  // Wrapper function that handles both React state updates and async Firebase operations
-  const handleUserPreferencesUpdate = (value: React.SetStateAction<UserPreferences>) => {
+  // Memoized helper function to save preferences to appropriate storage
+  const savePreferencesToStorage = useCallback((preferences: UserPreferences) => {
+    if (dbInstance && userId && !authState.isAnonymous) {
+      // Save to Firestore for authenticated users - use same path as settings page
+      const appId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'brighten-app';
+      const userDocRef = doc(dbInstance, `artifacts/${appId}/users/${userId}/preferences/user_settings`);
+      setDoc(userDocRef, preferences).catch(error => {
+        console.error("Error saving user preferences to Firestore:", error);
+        // Fallback to localStorage
+        if (userId) {
+          localStorage.setItem(`brighten_preferences_${userId}`, JSON.stringify(preferences));
+        }
+      });
+    } else if (userId) {
+      // Save to localStorage for anonymous users or offline mode
+      localStorage.setItem(`brighten_preferences_${userId}`, JSON.stringify(preferences));
+    }
+  }, [dbInstance, userId, authState.isAnonymous]);
+
+  // Memoized wrapper function that handles both React state updates and async Firebase operations
+  const handleUserPreferencesUpdate = useCallback((value: React.SetStateAction<UserPreferences>) => {
     if (typeof value === 'function') {
       // Handle function form: setUserPreferences(prev => newState)
       setUserPreferences(prev => {
         const newPreferences = value(prev);
-        // Save to Firebase asynchronously
-        if (dbInstance && userId) {
-          const userDocRef = doc(dbInstance, `users/${userId}/preferences/user_settings`);
-          setDoc(userDocRef, newPreferences).catch(error => {
-            console.error("Error saving user preferences:", error);
-          });
-        }
+        // Save preferences
+        savePreferencesToStorage(newPreferences);
         return newPreferences;
       });
     } else {
       // Handle direct value form: setUserPreferences(newValue)
       setUserPreferences(value);
-      // Save to Firebase asynchronously
-      if (dbInstance && userId) {
-        const userDocRef = doc(dbInstance, `users/${userId}/preferences/user_settings`);
-        setDoc(userDocRef, value).catch(error => {
-          console.error("Error saving user preferences:", error);
-        });
-      }
+      // Save preferences
+      savePreferencesToStorage(value);
     }
-  };
+  }, [savePreferencesToStorage]);
 
   // Show loading spinner while auth is not ready
   if (!isAuthReady) {
@@ -844,6 +1077,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     setSelectedLesson,
     userPreferences,
     setUserPreferences: handleUserPreferencesUpdate,
+    isPreferencesLoaded,
     userId,
     isAuthReady,
     authState,
@@ -851,6 +1085,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     signUp,
     signOut,
     signInWithGoogle,
+    changePassword,
+    deleteAccount,
     showPasteTextModal,
     setShowPasteTextModal,
     pasteTextContent,
@@ -858,17 +1094,17 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     loadingText,
     setLoadingText,
     currentEnrollment,
-    setCurrentEnrollment,
+    setCurrentEnrollment: updateCurrentEnrollment,
     db: dbInstance,
     auth: authInstance,
     appId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'brighten-app',
     // Learning Progress Management
     learningProgress,
     setLearningProgress,
+    isProgressLoading,
     updateLessonProgress,
     markLessonComplete,
     saveLearningProgress,
-    loadLearningProgress,
     getContinueLearningData,
     // Admin Management
     adminPermissions,
