@@ -149,13 +149,32 @@ export const generateVisualizationHF = async (
       setLoadingText('');
       return;
     }
+
+    // Quick API key validation
+    console.log(`🔑 Testing API key validity...`);
+    try {
+      const testResponse = await fetch('https://huggingface.co/api/whoami', {
+        headers: { Authorization: `Bearer ${HF_API_KEY}` }
+      });
+      if (!testResponse.ok) {
+        throw new Error(`API key validation failed: ${testResponse.status}`);
+      }
+      const userInfo = await testResponse.json();
+      console.log(`✅ API key valid for user: ${userInfo.name || 'unknown'}`);
+    } catch (error) {
+      console.log(`❌ API key validation failed:`, error);
+      customAlert("Invalid Hugging Face API key. Please check your token in .env.local");
+      setLoadingText('');
+      return;
+    }
     
-    // Try multiple models that are known to work with Hugging Face Inference API
-    // Order matters - we try the best working models first
+    // Try multiple models that are confirmed to work with Hugging Face Inference API FREE tier
+    // Order matters - we try the most reliable free models first
     const models = [
-      "stabilityai/stable-diffusion-xl-base-1.0", // ✅ Confirmed working
-      "stabilityai/stable-diffusion-2-1",
-      "runwayml/stable-diffusion-v1-5"
+      "stabilityai/stable-diffusion-2-1", // ✅ Most reliable free model
+      "CompVis/stable-diffusion-v1-4",   // ✅ Original SD model (free)
+      "stabilityai/stable-diffusion-xl-base-1.0", // ✅ High quality but slower
+      "runwayml/stable-diffusion-v1-5" // ⚠️ May require payment - last resort
     ];
     
     let imageUrl = null;
@@ -163,6 +182,7 @@ export const generateVisualizationHF = async (
     
     for (const model of models) {
       try {
+        console.log(`🚀 Trying model: ${model}`);
         const response = await fetch(
           `https://api-inference.huggingface.co/models/${model}`,
           {
@@ -181,16 +201,38 @@ export const generateVisualizationHF = async (
           }
         );
 
+        console.log(`📊 Model ${model} response status: ${response.status}`);
+        
         if (response.ok) {
           const imageBlob = await response.blob();
+          console.log(`📦 Blob size: ${imageBlob.size}, type: ${imageBlob.type}`);
           
           // Check if we got a valid image
           if (imageBlob.size > 0 && imageBlob.type.startsWith('image/')) {
             imageUrl = URL.createObjectURL(imageBlob);
+            console.log(`✅ Success with model: ${model}`);
             break; // Success! Exit the loop
+          } else {
+            console.log(`❌ Invalid image blob from ${model}`);
           }
         } else {
-          lastError = new Error(`HTTP error! status: ${response.status} for model: ${model}`);
+          // Get response text for debugging
+          const responseText = await response.text();
+          console.log(`❌ Error response from ${model}:`, responseText);
+          
+          // Provide more helpful error messages based on status code
+          let errorMessage = `HTTP error! status: ${response.status} for model: ${model}`;
+          if (response.status === 402) {
+            errorMessage += ` - This model requires payment. Trying next free model...`;
+          } else if (response.status === 429) {
+            errorMessage += ` - Rate limit exceeded. Trying next model...`;
+          } else if (response.status === 503) {
+            errorMessage += ` - Model temporarily unavailable. Trying next model...`;
+          } else if (response.status === 401) {
+            errorMessage += ` - Invalid API key. Please check your Hugging Face token.`;
+          }
+          lastError = new Error(errorMessage);
+          console.log(`Model ${model} failed:`, errorMessage);
         }
       } catch (error) {
         lastError = error;
@@ -211,7 +253,16 @@ export const generateVisualizationHF = async (
         return null;
       });
     } else {
-      throw lastError || new Error("All models failed to generate image");
+      // Provide helpful guidance when all models fail
+      let errorMsg = "All models failed to generate image. ";
+      if (lastError && lastError.message.includes('402')) {
+        errorMsg += "This may be due to free tier quota limits. Try again later or consider upgrading to a paid plan.";
+      } else if (lastError && lastError.message.includes('429')) {
+        errorMsg += "Rate limit exceeded. Please wait a few minutes before trying again.";
+      } else {
+        errorMsg += "Please check your internet connection and Hugging Face API key.";
+      }
+      throw new Error(errorMsg);
     }
   } catch (error) {
     console.error("Error generating image with Hugging Face:", error);
