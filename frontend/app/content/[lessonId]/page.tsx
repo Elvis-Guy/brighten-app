@@ -275,18 +275,17 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
 
 
   const handleGenerateSimplifiedText = async () => {
-    const simplified = await callLocalSimplificationAPI(selectedLesson.content.original, setLoadingText, console.warn);
-    if (simplified && typeof simplified === 'string') {
+    const simplifiedObj = await callLocalSimplificationAPI(selectedLesson.content.original, setLoadingText, console.warn);
+    if (simplifiedObj && typeof simplifiedObj === 'object') {
       setSelectedLesson(prev => {
         if (prev) {
           return {
             ...prev,
-            content: { ...prev.content, simplified: simplified }
+            content: { ...prev.content, simplified: simplifiedObj }
           };
         }
         return null;
       });
-      
       // Track progress for simplification activity
       if (lessonId) {
         const currentProgress = learningProgress?.lessonsInProgress[lessonId]?.progressPercentage || 10;
@@ -301,7 +300,16 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
 
 
   const handleGenerateVisualization = async () => {
-    await generateVisualizationHF(selectedLesson.content.visualPrompt, setLoadingText, setSelectedLesson, console.warn);
+    console.log("🎨 GENERATE VISUAL BUTTON CLICKED!");
+    console.log("📝 Visual prompt:", selectedLesson?.content?.visualPrompt);
+    console.log("✅ About to call generateVisualizationHF...");
+    
+    try {
+      await generateVisualizationHF(selectedLesson.content.visualPrompt, setLoadingText, setSelectedLesson, console.warn);
+      console.log("✅ generateVisualizationHF completed successfully");
+    } catch (error) {
+      console.error("❌ Error in handleGenerateVisualization:", error);
+    }
     
     // Track progress for visualization activity
     if (lessonId) {
@@ -327,108 +335,55 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
   // Function to format text with proper paragraphs and bullet points
   const formatText = (text: string) => {
     if (!text) return [];
-    
-    // Test with the user's specific example
-    const userExample = `Polynomial functions are expressions with variables raised to non-negative integer powers combined through addition, subtraction, and multiplication. The degree of a polynomial determines fundamental characteristics including end behavior, maximum number of turning points, potential number for zeros. Factoring techniques help identify zeroes and their multiplicities, while the remainder theorem and factor theorem help solve problems. Key tools: • Rational root theorem helps identify potential rational zos • Synthetic root: helps find potential zooms and find them • Key concepts: Population growth and economic relationships • Economic relationships: population growth, economic growth • Social relations: social relationships These tools help us understand complex phenomena and understand them.`;
-    
-    if (text.includes('Key tools:') || text.includes('Polynomial functions')) {
-    }
-    
-    // First, handle inline bullet points by converting them to proper newlines
-    let formattedText = text;
-    
-    // Handle the specific pattern like "Key tools: • Item1 • Item2 • Item3"
-    // Replace colon followed by bullet with newline structure
-    formattedText = formattedText.replace(/:\s*•\s*/g, ':\n• ');
-    
-    // Replace remaining inline bullets with newlines
-    formattedText = formattedText.replace(/\s+•\s+/g, '\n• ');
-    
-    // Function to split text into paragraphs after every 3 sentences
-    const createParagraphsFromSentences = (text: string) => {
-      // Split by sentences (period followed by space or end of string)
-      const sentences = text.split(/\.(?:\s+|$)/).filter(sentence => sentence.trim().length > 0);
-      
-      const paragraphs = [];
-      for (let i = 0; i < sentences.length; i += 3) {
-        // Take up to 3 sentences for each paragraph
-        const paragraphSentences = sentences.slice(i, i + 3);
-        const paragraph = paragraphSentences.join('. ').trim();
-        if (paragraph) {
-          // Add period back if it doesn't end with one
-          const finalParagraph = paragraph.endsWith('.') ? paragraph : paragraph + '.';
-          paragraphs.push(finalParagraph);
-        }
-      }
-      return paragraphs;
-    };
 
-    // Split into paragraphs first (by double newlines)
-    const initialParagraphs = formattedText.split(/\n\s*\n/);
-    const result: React.ReactElement[] = [];
-    
-    initialParagraphs.forEach((paragraph, paraIndex) => {
-      const lines = paragraph.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        // Check if it's a bullet point (starts with bullet, dash, asterisk, or number)
-        if (line.match(/^[•\-*]\s/) || line.match(/^\d+\.\s/)) {
-          // It's a bullet point
-          const bulletText = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '');
-          result.push(
-            <div key={`${paraIndex}-${i}`} className="flex items-start space-x-3 mb-2">
-              <span className="mt-1.5 text-orange-500 font-bold text-sm">•</span>
-              <span className="flex-1">{bulletText}</span>
-            </div>
-          );
-        } else if (line.trim().length > 0) {
-          // Check if this line contains inline bullets that we should split
-          if (line.includes('•')) {
-            // Split by bullet points and process each part
-            const parts = line.split('•').filter(part => part.trim().length > 0);
-            
-            // First part is regular text - split into 3-sentence paragraphs
-            if (parts.length > 0 && parts[0].trim()) {
-              const textParagraphs = createParagraphsFromSentences(parts[0].trim());
-              textParagraphs.forEach((textPara, textIndex) => {
-                result.push(
-                  <p key={`${paraIndex}-${i}-main-${textIndex}`} className="mb-4">
-                    {textPara}
-                  </p>
-                );
-              });
-            }
-            
-            // Remaining parts are bullet points
-            for (let j = 1; j < parts.length; j++) {
-              const bulletText = parts[j].trim();
-              if (bulletText) {
-                result.push(
-                  <div key={`${paraIndex}-${i}-bullet-${j}`} className="flex items-start space-x-3 mb-2">
-                    <span className="mt-1.5 text-orange-500 font-bold text-sm">•</span>
-                    <span className="flex-1">{bulletText}</span>
-                  </div>
-                );
-              }
-            }
-          } else {
-            // Regular paragraph - split into 3-sentence chunks
-            const textParagraphs = createParagraphsFromSentences(line);
-            textParagraphs.forEach((textPara, textIndex) => {
-              result.push(
-                <p key={`${paraIndex}-${i}-${textIndex}`} className="mb-4">
-                  {textPara}
-                </p>
-              );
-            });
-          }
-        }
+    // Preprocess for bullet points as before
+    let formattedText = text;
+    formattedText = formattedText.replace(/:\s*•\s*/g, ':\n• ');
+    formattedText = formattedText.replace(/\s+•\s+/g, '\n• ');
+
+    // Split into sentences (period, exclamation, or question mark followed by space or end)
+    const sentences = formattedText.match(/[^.!?\n]+[.!?]?/g) || [];
+
+    // Color palette for blocks
+    const colors = [
+      'bg-orange-50',
+      'bg-blue-50',
+      'bg-green-50',
+      'bg-yellow-50',
+      'bg-purple-50',
+      'bg-pink-50',
+      'bg-teal-50',
+    ];
+
+    // Render each sentence as a colored block
+    return sentences.map((sentence, idx) => {
+      const trimmed = sentence.trim();
+      if (!trimmed) return null;
+      // Bullet point detection
+      if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*') || /^\d+\.\s/.test(trimmed)) {
+        return (
+          <div key={idx} className={`flex items-start space-x-3 mb-2 ${colors[idx % colors.length]} rounded-lg px-4 py-2`}>
+            <span className="mt-1.5 text-orange-500 font-bold text-sm">•</span>
+            <span className="flex-1">{trimmed.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '')}</span>
+          </div>
+        );
       }
+      return (
+        <div key={idx} className={`mb-2 px-4 py-2 rounded-lg ${colors[idx % colors.length]}`}>
+          {trimmed}
+        </div>
+      );
     });
-    
-    return result;
+  };
+
+  // Add a plain formatter for original text
+  const formatTextPlain = (text: string) => {
+    if (!text) return null;
+    // Split by double newlines for paragraphs
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+    return paragraphs.map((para, idx) => (
+      <p key={idx} className="mb-4">{para.trim()}</p>
+    ));
   };
 
   // Helper function to detect bullet points - made more robust
@@ -569,7 +524,7 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
               />
             </div>
             <div className="text-gray-700 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar" style={{ fontSize: `${userPreferences.fontSize}px`, lineHeight: userPreferences.fontSize > 18 ? '1.8' : '1.5' }}>
-              {formatText(selectedLesson.content.original)}
+              {formatTextPlain(selectedLesson.content.original)}
             </div>
           </div>
 
@@ -579,7 +534,15 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
               <h3 className="text-xl font-semibold text-gray-800">Simplified Text</h3>
               <div className="flex space-x-2">
                 <TextToSpeech 
-                  text={selectedLesson.content.simplified || ''}
+                  text={(() => {
+                    const simplifiedObj = selectedLesson.content.simplified;
+                    return (
+                      simplifiedObj?.text ||
+                      simplifiedObj?.simplified ||
+                      simplifiedObj?.simplified_text ||
+                      (typeof simplifiedObj === 'string' ? simplifiedObj : '')
+                    );
+                  })()}
                   disabled={!selectedLesson.content.simplified}
                   onStart={() => {
                     // Track progress for listening to simplified text
@@ -605,7 +568,15 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
             </div>
             <div className="text-gray-700 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar" style={{ fontSize: `${userPreferences.fontSize}px`, lineHeight: userPreferences.fontSize > 18 ? '1.8' : '1.5' }}>
               {selectedLesson.content.simplified ? (
-                formatText(selectedLesson.content.simplified)
+                (() => {
+                  const simplifiedObj = selectedLesson.content.simplified;
+                  const simplifiedText =
+                    simplifiedObj?.text ||
+                    simplifiedObj?.simplified ||
+                    simplifiedObj?.simplified_text ||
+                    (typeof simplifiedObj === 'string' ? simplifiedObj : '');
+                  return formatText(simplifiedText);
+                })()
               ) : (
                 <div className="flex flex-col items-center justify-center h-48 text-gray-500">
                   <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
