@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: brighten-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn api:app --host 0.0.0.0 --port $PORT --workers 1 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.16
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/transformers_cache 
