@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: brighten-api
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn api:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --max-requests 1000
+    healthCheckPath: /health 
