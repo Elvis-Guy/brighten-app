@@ -24,7 +24,7 @@ export const callLocalSimplificationAPI = async (
   text: string,
   setLoadingText: React.Dispatch<React.SetStateAction<string>>,
   customAlert: (message: string) => void
-): Promise<any | null> => {
+): Promise<Record<string, unknown> | null> => {
   setLoadingText('Simplifying text with local model...');
   try {
     const response = await fetch('http://localhost:5001/simplify', {
@@ -240,9 +240,9 @@ export const generateVisualizationHF = async (
     } else {
       // Provide helpful guidance when all models fail
       let errorMsg = "All models failed to generate image. ";
-      if (lastError && lastError.message.includes('402')) {
+      if (lastError && lastError instanceof Error && lastError.message.includes('402')) {
         errorMsg += "This may be due to free tier quota limits. Try again later or consider upgrading to a paid plan.";
-      } else if (lastError && lastError.message.includes('429')) {
+      } else if (lastError && lastError instanceof Error && lastError.message.includes('429')) {
         errorMsg += "Rate limit exceeded. Please wait a few minutes before trying again.";
       } else {
         errorMsg += "Please check your internet connection and Hugging Face API key.";

@@ -16,7 +16,7 @@ export interface UserPreferences {
   
   export interface LessonContent {
     original: string;
-    simplified: string;
+    simplified: string | Record<string, unknown>;
     visualPrompt: string;
   }
   
@@ -69,6 +69,7 @@ export interface UserPreferences {
     currentSection?: string; // Which part of the lesson they're on
     completedSections: string[]; // Completed sections within the lesson
     bookmarks: string[]; // Bookmarked sections or text snippets
+    quizScores?: number[]; // Array of quiz scores for this lesson
   }
 
   export interface LearningProgress {
@@ -127,6 +128,7 @@ export interface UserPreferences {
     description?: string;
     gradeId: string;
     isActive: boolean;
+    color?: string; // Color for UI display
     totalTopics: number;
     createdAt: string;
     updatedAt: string;
@@ -136,11 +138,13 @@ export interface UserPreferences {
   export interface CurriculumTopicAdmin {
     id: string;
     title: string;
+    description?: string; // Brief description of the topic
     content: string;
     subjectId: string;
     gradeId: string;
     order: number; // for ordering topics within a subject
     difficulty: 'beginner' | 'intermediate' | 'advanced';
+    estimatedTime: number; // in minutes (alias for estimatedDuration)
     estimatedDuration: number; // in minutes
     learningObjectives: string[];
     keywords: string[];
@@ -194,11 +198,11 @@ export interface UserPreferences {
       subject: string;
       topic: string;
     } | null;
-    setCurrentEnrollment: React.Dispatch<React.SetStateAction<{
+    setCurrentEnrollment: (enrollment: {
       grade: string;
       subject: string;
       topic: string;
-    } | null>>;
+    } | null) => Promise<void>;
     // Learning Progress Management
     learningProgress: LearningProgress | null;
     setLearningProgress: React.Dispatch<React.SetStateAction<LearningProgress | null>>;
@@ -222,4 +226,49 @@ export interface UserPreferences {
     getAllGrades: () => Promise<CurriculumGrade[]>;
     getAllSubjects: (gradeId?: string) => Promise<CurriculumSubjectAdmin[]>;
     getAllTopics: (subjectId?: string) => Promise<CurriculumTopicAdmin[]>;
+  }
+
+  // Quiz System Types
+  export interface QuizQuestion {
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer: number; // index of correct option
+    explanation?: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+  }
+
+  export interface Quiz {
+    id: string;
+    topicId: string;
+    title: string;
+    description: string;
+    questions: QuizQuestion[];
+    timeLimit?: number; // in minutes
+    passingScore: number; // percentage
+    maxAttempts: number;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  export interface QuizAttempt {
+    id: string;
+    quizId: string;
+    userId: string;
+    answers: number[]; // user's answers (indices)
+    score: number; // percentage
+    timeSpent: number; // in seconds
+    passed: boolean;
+    completedAt: string;
+    startedAt: string;
+  }
+
+  export interface QuizResult {
+    attempt: QuizAttempt;
+    quiz: Quiz;
+    correctAnswers: number[];
+    totalQuestions: number;
+    correctCount: number;
+    grade: string; // A, B, C, D, F
   }

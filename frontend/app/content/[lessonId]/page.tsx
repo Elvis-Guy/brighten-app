@@ -7,13 +7,16 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { RefreshIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
+import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { curriculumContent } from '@/data/curriculumData';
 import curriculumData from '@/curriculum_content.json';
-import { callLocalSimplificationAPI, generateVisualizationHF } from '@/lib/api';
+import { callLocalSimplificationAPI } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import TextToSpeech from '@/components/ui/TextToSpeech';
-import type { CurrentLesson } from '@/types';
+import QuizComponent from '@/components/ui/QuizComponent';
+import QuizResults from '@/components/ui/QuizResults';
+import { getQuizByTopic } from '@/data/sampleQuizzes';
+import type { CurrentLesson, Quiz, QuizResult } from '@/types';
 
 interface ContentPageProps {
   params: Promise<{
@@ -21,14 +24,24 @@ interface ContentPageProps {
   }>;
 }
 
+function topicToImageFilename(topic: string) {
+  return `/educational_images/${topic.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')}.png`;
+}
+
 const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
   const router = useRouter();
   const [lessonId, setLessonId] = useState<string | null>(null);
-  const { selectedLesson, setSelectedLesson, userPreferences, setLoadingText, currentEnrollment, updateLessonProgress, markLessonComplete, learningProgress, setCurrentEnrollment } = useAppContext();
+  const { selectedLesson, setSelectedLesson, userPreferences, setLoadingText, updateLessonProgress, markLessonComplete, learningProgress, setCurrentEnrollment } = useAppContext();
   
   // Progress tracking states
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [isLessonCompleted, setIsLessonCompleted] = useState<boolean>(false);
+  
+  // Quiz states
+  const [showQuiz, setShowQuiz] = useState<boolean>(false);
+  const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [showQuizResults, setShowQuizResults] = useState<boolean>(false);
 
   // Topic navigation logic
   const getCurrentTopicInfo = () => {
@@ -91,7 +104,7 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
     return null;
   };
 
-  const navigateToTopic = (targetLessonId: string, targetTopic: any) => {
+  const navigateToTopic = (targetLessonId: string, targetTopic: Record<string, unknown>) => {
     const info = getCurrentTopicInfo();
     if (!info) return;
     
@@ -99,7 +112,7 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
     setCurrentEnrollment({
       grade: info.gradeKey,
       subject: info.subjectKey,
-      topic: targetTopic.topic
+      topic: targetTopic.topic as string
     });
     
     // Navigate to the new topic
@@ -234,11 +247,11 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
   useEffect(() => {
     return () => {
       if (sessionStartTime && lessonId) {
-        const timeSpent = Math.round((new Date().getTime() - sessionStartTime.getTime()) / (1000 * 60)); // Minutes
+        // const timeSpent = Math.round((new Date().getTime() - sessionStartTime.getTime()) / (1000 * 60)); // Minutes
         // Capture current time spent at effect creation time to avoid infinite loops
         const currentTimeSpent = learningProgress?.lessonsInProgress[lessonId]?.timeSpentMinutes || 0;
         updateLessonProgress(lessonId, {
-          timeSpentMinutes: currentTimeSpent + timeSpent
+          timeSpentMinutes: currentTimeSpent + 1 // Add 1 minute as a simple increment
         });
       }
     };
@@ -249,7 +262,7 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
     if (!sessionStartTime || !lessonId) return;
 
     const interval = setInterval(() => {
-      const timeSpent = Math.round((new Date().getTime() - sessionStartTime.getTime()) / (1000 * 60));
+      // const timeSpent = Math.round((new Date().getTime() - sessionStartTime.getTime()) / (1000 * 60));
       // Capture values at interval time, not from state dependencies
       const currentProgressData = learningProgress?.lessonsInProgress[lessonId];
       const currentProgress = currentProgressData?.progressPercentage || 10;
@@ -299,6 +312,7 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
 
 
 
+  /*
   const handleGenerateVisualization = async () => {
     console.log("🎨 GENERATE VISUAL BUTTON CLICKED!");
     console.log("📝 Visual prompt:", selectedLesson?.content?.visualPrompt);
@@ -320,6 +334,7 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
       });
     }
   };
+  */
 
   const handleBackToCurriculum = () => {
     router.push('/curriculum');
@@ -386,6 +401,56 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
     ));
   };
 
+  // Quiz Handler Functions
+  const handleStartQuiz = () => {
+    const topicInfo = getCurrentTopicInfo();
+    if (!topicInfo?.currentTopic) return;
+
+    const quiz = getQuizByTopic(topicInfo.currentTopic.topic);
+    if (quiz) {
+      setCurrentQuiz(quiz);
+      setShowQuiz(true);
+      setShowQuizResults(false);
+      setQuizResult(null);
+    } else {
+      alert('No quiz available for this topic yet. Keep learning!');
+    }
+  };
+
+  const handleQuizComplete = (result: QuizResult) => {
+    setQuizResult(result);
+    setShowQuiz(false);
+    setShowQuizResults(true);
+    
+    // Update lesson progress based on quiz performance
+    if (lessonId) {
+      const currentProgress = learningProgress?.lessonsInProgress[lessonId]?.progressPercentage || 0;
+      const quizBonus = result.attempt.passed ? 20 : 10; // More progress for passing
+      updateLessonProgress(lessonId, {
+        progressPercentage: Math.min(100, Math.max(currentProgress, 80 + quizBonus)),
+        currentSection: 'quiz_completed',
+        quizScores: [...(learningProgress?.lessonsInProgress[lessonId]?.quizScores || []), result.attempt.score]
+      });
+    }
+  };
+
+  const handleRetakeQuiz = () => {
+    setShowQuizResults(false);
+    setQuizResult(null);
+    setShowQuiz(true);
+  };
+
+  const handleContinueAfterQuiz = () => {
+    setShowQuizResults(false);
+    // If quiz passed, suggest next topic or mark as complete
+    if (quizResult?.attempt.passed) {
+      alert('Great job! You can now move to the next topic or continue exploring.');
+    }
+  };
+
+
+
+  /*
   // Helper function to detect bullet points - made more robust
   const isBulletPoint = (line: string) => {
     const trimmed = line.trim();
@@ -396,11 +461,12 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
            /^-\s/.test(trimmed) ||
            /^\*\s/.test(trimmed);
   };
+  */
 
   // Get current lesson progress data
   const currentLessonProgress = learningProgress?.lessonsInProgress[lessonId || ''];
   const progressPercentage = currentLessonProgress?.progressPercentage || 0;
-  const timeSpent = currentLessonProgress?.timeSpentMinutes || 0;
+  // const timeSpent = currentLessonProgress?.timeSpentMinutes || 0;
 
   return (
     <ProtectedRoute>
@@ -460,6 +526,29 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
           </div>
         </div>
 
+        {/* Quiz Section */}
+        {currentQuiz && showQuiz && (
+          <div className="mb-8">
+            <QuizComponent
+              quiz={currentQuiz}
+              onComplete={handleQuizComplete}
+              onCancel={() => setShowQuiz(false)}
+            />
+          </div>
+        )}
+
+        {/* Quiz Results Section */}
+        {quizResult && showQuizResults && (
+          <div className="mb-8">
+            <QuizResults
+              result={quizResult}
+              onRetakeQuiz={handleRetakeQuiz}
+              onContinueLearning={handleContinueAfterQuiz}
+              onBackToContent={() => setShowQuizResults(false)}
+            />
+          </div>
+        )}
+
         {/* Progress Section */}
         <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-6 mb-8 border border-orange-200">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -467,8 +556,6 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Learning Progress</h3>
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <span>Progress: {progressPercentage}%</span>
-                <span>•</span>
-                <span>Time spent: {timeSpent} min</span>
                 {currentLessonProgress?.lastAccessedAt && (
                   <>
                     <span>•</span>
@@ -476,15 +563,19 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
                   </>
                 )}
               </div>
-              <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
-              </div>
             </div>
-            <div className="flex space-x-3">
-              {!isLessonCompleted && progressPercentage >= 50 && (
+            <div className="flex space-x-3 mt-4">
+              {/* Quiz Button */}
+              {!showQuiz && !showQuizResults && (
+                <button
+                  onClick={handleStartQuiz}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200 font-medium"
+                >
+                  Take Quiz
+                </button>
+              )}
+              
+              {!isLessonCompleted && (
                 <button
                   onClick={handleMarkComplete}
                   className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200 font-medium"
@@ -536,12 +627,17 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
                 <TextToSpeech 
                   text={(() => {
                     const simplifiedObj = selectedLesson.content.simplified;
-                    return (
-                      simplifiedObj?.text ||
-                      simplifiedObj?.simplified ||
-                      simplifiedObj?.simplified_text ||
-                      (typeof simplifiedObj === 'string' ? simplifiedObj : '')
-                    );
+                    if (typeof simplifiedObj === 'string') {
+                      return simplifiedObj;
+                    } else if (simplifiedObj && typeof simplifiedObj === 'object') {
+                      return (
+                        (simplifiedObj as Record<string, unknown>).text ||
+                        (simplifiedObj as Record<string, unknown>).simplified ||
+                        (simplifiedObj as Record<string, unknown>).simplified_text ||
+                        ''
+                      ) as string;
+                    }
+                    return '';
                   })()}
                   disabled={!selectedLesson.content.simplified}
                   onStart={() => {
@@ -568,22 +664,28 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
             </div>
             <div className="text-gray-700 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar" style={{ fontSize: `${userPreferences.fontSize}px`, lineHeight: userPreferences.fontSize > 18 ? '1.8' : '1.5' }}>
               {selectedLesson.content.simplified ? (
-                (() => {
-                  const simplifiedObj = selectedLesson.content.simplified;
-                  const simplifiedText =
-                    simplifiedObj?.text ||
-                    simplifiedObj?.simplified ||
-                    simplifiedObj?.simplified_text ||
-                    (typeof simplifiedObj === 'string' ? simplifiedObj : '');
-                  return formatText(simplifiedText);
-                })()
+                            (() => {
+              const simplifiedObj = selectedLesson.content.simplified;
+              let simplifiedText = '';
+              if (typeof simplifiedObj === 'string') {
+                simplifiedText = simplifiedObj;
+              } else if (simplifiedObj && typeof simplifiedObj === 'object') {
+                simplifiedText = (
+                  (simplifiedObj as Record<string, unknown>).text ||
+                  (simplifiedObj as Record<string, unknown>).simplified ||
+                  (simplifiedObj as Record<string, unknown>).simplified_text ||
+                  ''
+                ) as string;
+              }
+              return formatText(simplifiedText);
+            })()
               ) : (
                 <div className="flex flex-col items-center justify-center h-48 text-gray-500">
                   <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <p className="text-lg font-medium mb-2">No simplified text yet</p>
-                  <p className="text-sm text-center">Click the "Simplify Text" button above to generate an easier-to-read version of the original text.</p>
+                  <p className="text-sm text-center">Click the &quot;Simplify Text&quot; button above to generate an easier-to-read version of the original text.</p>
                 </div>
               )}
             </div>
@@ -591,47 +693,35 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
         </div>
 
         {/* Visual Representation */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">Visual Representation</h3>
-            <button
-              onClick={handleGenerateVisualization}
-              className="px-6 py-2 bg-orange-500 text-white rounded-full flex items-center space-x-2 hover:bg-orange-600 transition duration-200 text-sm font-semibold"
-            >
-              <RefreshIcon className="h-5 w-5" />
-              <span>Generate Visual</span>
-            </button>
-          </div>
-          <div className="flex justify-center items-center h-80 bg-gray-50 rounded-lg overflow-hidden">
-            {selectedLesson.visual ? (
-              <img src={selectedLesson.visual} alt="Concept Visualization" className="max-h-full max-w-full object-contain" />
-            ) : (
-              <img src="https://placehold.co/600x400/E0F7FA/00796B?text=Visual+Representation" alt="Placeholder Visual" className="max-h-full max-w-full object-contain" />
-            )}
-          </div>
-          <div className="mt-4">
-            <p className="text-center text-gray-500 text-sm">
-              {selectedLesson.content.visualPrompt || "AI-generated illustration related to the content."}
-            </p>
-            
-            {/* API Information */}
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">🎨 AI Image Generation</h4>
-              <div className="text-xs text-gray-600">
-                <div className="flex items-start space-x-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full mt-0.5 flex-shrink-0"></div>
-                  <div>
-                    <span className="font-medium text-orange-700">Powered by Hugging Face</span>
-                    <br />Educational-focused • High contrast for dyslexia support
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                ✨ Images are automatically optimized for learning with simple, clear designs and high contrast colors.
+        {selectedLesson && !(selectedLesson.id.startsWith('uploaded-') || selectedLesson.id.startsWith('pasted-')) && (
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div className="flex items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">Visual Representation</h3>
+            </div>
+            <div className="flex justify-center items-center h-80 bg-gray-50 rounded-lg overflow-hidden">
+              {(() => {
+                const topicInfo = getCurrentTopicInfo();
+                const topicName = topicInfo?.currentTopic?.topic || '';
+                const imgSrc = topicToImageFilename(topicName);
+                return (
+                  <img
+                    src={imgSrc}
+                    alt={topicName + ' visual representation'}
+                    className="max-h-full max-w-full object-contain"
+                    onError={e => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/E0F7FA/00796B?text=Visual+Representation';
+                    }}
+                  />
+                );
+              })()}
+            </div>
+            <div className="mt-4">
+              <p className="text-center text-gray-500 text-sm">
+                Visual representation for this topic.
               </p>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Bottom Topic Navigation */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mt-8 border border-gray-100">

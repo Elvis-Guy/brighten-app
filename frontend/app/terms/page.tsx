@@ -31,7 +31,7 @@ const TermsPage = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Welcome to Brighten!</h2>
             <p className="text-gray-700 text-lg leading-relaxed">
               These terms explain how to use Brighten safely and get the most out of your learning experience. 
-              We've written them in simple, clear language so everyone can understand.
+              We&apos;ve written them in simple, clear language so everyone can understand.
             </p>
           </div>
 
@@ -47,7 +47,7 @@ const TermsPage = () => {
                 <h3 className="font-semibold text-blue-800">Our platform helps you:</h3>
                 <ul className="text-gray-700 space-y-1 ml-4">
                   <li>• Study Grade 10, 11, and 12 subjects</li>
-                  <li>• Read content that's adapted for dyslexic learners</li>
+                  <li>• Read content that&apos;s adapted for dyslexic learners</li>
                   <li>• Upload your own texts to be simplified</li>
                   <li>• Track your learning progress</li>
                   <li>• Access visual aids and learning tools</li>
@@ -92,7 +92,7 @@ const TermsPage = () => {
                   <li>• Use the platform for learning and studying</li>
                   <li>• Keep your login information safe and private</li>
                   <li>• Be respectful in any communications</li>
-                  <li>• Follow your school's guidelines for online learning</li>
+                  <li>• Follow your school&apos;s guidelines for online learning</li>
                   <li>• Ask for help when you need it</li>
                 </ul>
               </div>
@@ -116,7 +116,7 @@ const TermsPage = () => {
             <div className="bg-indigo-50 p-6 rounded-lg">
               <p className="text-gray-700 mb-4">
                 Our AI creates and simplifies learning content to help dyslexic students. 
-                Here's what you should know about this content:
+                Here&apos;s what you should know about this content:
               </p>
               <div className="space-y-4">
                 <div>
@@ -134,7 +134,7 @@ const TermsPage = () => {
                   <ul className="text-gray-700 space-y-1 ml-4">
                     <li>• AI is a tool to help you learn, not replace teachers</li>
                     <li>• Always double-check important facts with other sources</li>
-                    <li>• If something doesn't make sense, ask for help</li>
+                    <li>• If something doesn&apos;t make sense, ask for help</li>
                     <li>• Your teacher or parent can help verify information</li>
                   </ul>
                 </div>
@@ -147,7 +147,7 @@ const TermsPage = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Accessibility and Learning Support</h2>
             <div className="bg-orange-50 p-6 rounded-lg">
               <p className="text-gray-700 mb-4">
-                We're committed to making learning accessible for everyone, especially students with dyslexia.
+                We&apos;re committed to making learning accessible for everyone, especially students with dyslexia.
               </p>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
@@ -179,8 +179,8 @@ const TermsPage = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Getting Help and Support</h2>
             <div className="bg-gray-50 p-6 rounded-lg">
               <p className="text-gray-700 mb-4">
-                Learning can be challenging, and we're here to help you succeed. 
-                Don't hesitate to reach out if you need support.
+                Learning can be challenging, and we&apos;re here to help you succeed. 
+                Don&apos;t hesitate to reach out if you need support.
               </p>
               <div className="space-y-4">
                 <div>
@@ -213,10 +213,10 @@ const TermsPage = () => {
             <div className="bg-blue-50 p-6 rounded-lg">
               <p className="text-gray-700 mb-4">
                 Sometimes we need to update these terms to make them better or add new features. 
-                When we do, we'll let you know.
+                When we do, we&apos;ll let you know.
               </p>
               <div className="space-y-2">
-                <h3 className="font-semibold text-blue-800">What We'll Do:</h3>
+                <h3 className="font-semibold text-blue-800">What We&apos;ll Do:</h3>
                 <ul className="text-gray-700 space-y-1 ml-4">
                   <li>• Send you an email about important changes</li>
                   <li>• Show a notice when you log in</li>
@@ -232,7 +232,7 @@ const TermsPage = () => {
             <h2 className="text-2xl font-bold text-orange-800 mb-4">Questions About These Terms?</h2>
             <p className="text-gray-700 mb-4">
               If you have questions about these terms or need help understanding them, 
-              please reach out to us. We're here to help you learn and succeed!
+              please reach out to us. We&apos;re here to help you learn and succeed!
             </p>
             <div className="space-y-2">
               <p className="text-gray-700"><strong>Contact us:</strong></p>

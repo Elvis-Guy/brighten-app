@@ -333,9 +333,15 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
 
   // Debounced Firebase sync function with aggressive throttling
   const scheduleFirebaseSync = useCallback(() => {
-    // Skip Firebase sync if disabled or in development mode (direct environment check)
-    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DISABLE_FIREBASE_SYNC === 'true') {
+    // Skip Firebase sync if explicitly disabled via environment variable
+    if (process.env.NEXT_PUBLIC_DISABLE_FIREBASE_SYNC === 'true') {
       console.log('🚫 Firebase sync disabled');
+      return;
+    }
+
+    // Skip Firebase sync in development mode unless explicitly enabled
+    if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_ENABLE_FIREBASE_DEV !== 'true') {
+      console.log('🚫 Firebase sync disabled in development mode');
       return;
     }
 
@@ -742,11 +748,13 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     try {
       const gradesQuery = query(
         collection(dbInstance, 'curriculum_grades'),
-        where('isActive', '==', true),
-        orderBy('gradeNumber', 'asc')
+        where('isActive', '==', true)
       );
       const querySnapshot = await getDocs(gradesQuery);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CurriculumGrade));
+      const grades = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CurriculumGrade));
+      
+      // Sort by gradeNumber in JavaScript to avoid composite index requirement
+      return grades.sort((a, b) => a.gradeNumber - b.gradeNumber);
     } catch (error) {
       console.error('Error getting grades:', error);
       throw error;
@@ -764,19 +772,20 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         subjectsQuery = query(
           collection(dbInstance, 'curriculum_subjects'),
           where('gradeId', '==', gradeId),
-          where('isActive', '==', true),
-          orderBy('name', 'asc')
+          where('isActive', '==', true)
         );
       } else {
         subjectsQuery = query(
           collection(dbInstance, 'curriculum_subjects'),
-          where('isActive', '==', true),
-          orderBy('name', 'asc')
+          where('isActive', '==', true)
         );
       }
       
       const querySnapshot = await getDocs(subjectsQuery);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CurriculumSubjectAdmin));
+      const subjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CurriculumSubjectAdmin));
+      
+      // Sort by name in JavaScript to avoid composite index requirement
+      return subjects.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       console.error('Error getting subjects:', error);
       throw error;
@@ -794,19 +803,20 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         topicsQuery = query(
           collection(dbInstance, 'curriculum_topics'),
           where('subjectId', '==', subjectId),
-          where('isActive', '==', true),
-          orderBy('order', 'asc')
+          where('isActive', '==', true)
         );
       } else {
         topicsQuery = query(
           collection(dbInstance, 'curriculum_topics'),
-          where('isActive', '==', true),
-          orderBy('order', 'asc')
+          where('isActive', '==', true)
         );
       }
       
       const querySnapshot = await getDocs(topicsQuery);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CurriculumTopicAdmin));
+      const topics = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CurriculumTopicAdmin));
+      
+      // Sort by order in JavaScript to avoid composite index requirement
+      return topics.sort((a, b) => a.order - b.order);
     } catch (error) {
       console.error('Error getting topics:', error);
       throw error;

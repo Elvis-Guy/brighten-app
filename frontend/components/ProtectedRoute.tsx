@@ -37,7 +37,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           {/* Benefits */}
           <div className="text-left mb-8">
             <h3 className="text-lg font-semibold text-gray-800 mb-3">
-              What you'll get:
+              What you&apos;ll get:
             </h3>
             <ul className="space-y-2 text-gray-600">
               <li className="flex items-center">

@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpenIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { useAppContext } from '@/context/AppContext';
-import curriculumData from '@/curriculum_content.json';
 import TextToSpeech from '@/components/ui/TextToSpeech';
+import curriculumData from '@/curriculum_content.json';
 import type { CurrentLesson } from '@/types';
 
+// Types for static data
 type Grade = 'grade_10' | 'grade_11' | 'grade_12';
 type Subject = 'mathematics' | 'science' | 'english';
 
@@ -21,6 +22,8 @@ interface SubjectData {
   subject: string;
   topics: Topic[];
 }
+
+
 
 const CurriculumPage: React.FC = () => {
   const router = useRouter();
@@ -41,8 +44,6 @@ const CurriculumPage: React.FC = () => {
     { key: 'science', label: 'Science', icon: '🔬', color: 'bg-green-500' },
     { key: 'english', label: 'English', icon: '📚', color: 'bg-purple-500' }
   ];
-
-
 
   const goBack = () => {
     if (selectedTopic) {
@@ -105,7 +106,7 @@ const CurriculumPage: React.FC = () => {
       progress: 0,
       topic: topic.topic,
       description: `${subjectData.subject} - ${topic.topic}`,
-      image: `/public/${selectedSubject}1.jpeg`, // Default image
+      image: `/educational_images/${topic.topic.toLowerCase().replace(/\s+/g, '_')}.png`,
       content: {
         original: topic.content,
         simplified: "",
@@ -140,6 +141,26 @@ const CurriculumPage: React.FC = () => {
     }
   };
 
+  // Count topics across all grades and subjects
+  const getTotalCounts = () => {
+    let totalSubjects = 0;
+    let totalTopics = 0;
+    
+    Object.keys(curriculumData.curriculum).forEach(grade => {
+      Object.keys(curriculumData.curriculum[grade as Grade]).forEach(subject => {
+        totalSubjects++;
+        const subjectData = curriculumData.curriculum[grade as Grade][subject as Subject];
+        if (subjectData && subjectData.topics) {
+          totalTopics += subjectData.topics.length;
+        }
+      });
+    });
+    
+    return { grades: 3, subjects: totalSubjects, topics: totalTopics };
+  };
+
+  const counts = getTotalCounts();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-6 md:p-10 max-w-7xl mx-auto">
@@ -156,6 +177,11 @@ const CurriculumPage: React.FC = () => {
                 <p className="text-xl md:text-2xl mb-8 opacity-90">
                   Discover comprehensive learning content across all grades and subjects
                 </p>
+                <div className="flex space-x-6 text-sm opacity-80">
+                  <span>{counts.grades} Grades</span>
+                  <span>{counts.subjects} Subjects</span>
+                  <span>{counts.topics} Topics</span>
+                </div>
               </div>
               <BookOpenIcon className="h-16 w-16 md:h-20 md:w-20 opacity-50" />
             </div>
@@ -185,32 +211,39 @@ const CurriculumPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Grade Selection */}
+                {/* Grade Selection */}
         {!selectedGrade && (
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-800 mb-6">Select Your Grade</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {grades.map(grade => (
-                <button
-                  key={grade.key}
-                  onClick={() => setSelectedGrade(grade.key as Grade)}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-left border border-gray-100 hover:border-orange-200 group"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition-colors">
-                      {grade.label}
-                    </h3>
-                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                      <span className="text-2xl font-bold text-orange-600">
-                        {grade.key.split('_')[1]}
-                      </span>
+              {grades.map(grade => {
+                const gradeKey = grade.key as Grade;
+                const gradeSubjects = Object.keys(curriculumData.curriculum[gradeKey] || {});
+                return (
+                  <button
+                    key={grade.key}
+                    onClick={() => setSelectedGrade(gradeKey)}
+                    className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-left border border-gray-100 hover:border-orange-200 group"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition-colors">
+                        {grade.label}
+                      </h3>
+                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                        <span className="text-2xl font-bold text-orange-600">
+                          {grade.key.split('_')[1]}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-gray-600 group-hover:text-gray-700 transition-colors">
-                    {grade.description}
-                  </p>
-                </button>
-              ))}
+                    <p className="text-gray-600 group-hover:text-gray-700 transition-colors mb-2">
+                      {grade.description}
+                    </p>
+                    <div className="text-sm text-orange-600 font-medium">
+                      {gradeSubjects.length} subjects available
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -220,25 +253,31 @@ const CurriculumPage: React.FC = () => {
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-800 mb-6">Choose a Subject</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {subjects.map(subject => (
-                <button
-                  key={subject.key}
-                  onClick={() => setSelectedSubject(subject.key as Subject)}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-left border border-gray-100 hover:border-orange-200 group"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition-colors">
-                      {subject.label}
-                    </h3>
-                    <div className={`w-12 h-12 ${subject.color} rounded-full flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                      <span className="text-2xl">{subject.icon}</span>
+              {subjects.map(subject => {
+                const subjectKey = subject.key as Subject;
+                const subjectData = curriculumData.curriculum[selectedGrade]?.[subjectKey];
+                if (!subjectData) return null;
+                
+                return (
+                  <button
+                    key={subject.key}
+                    onClick={() => setSelectedSubject(subjectKey)}
+                    className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-left border border-gray-100 hover:border-orange-200 group"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-2xl font-bold text-gray-800 group-hover:text-orange-600 transition-colors">
+                        {subject.label}
+                      </h3>
+                      <div className={`w-12 h-12 ${subject.color} rounded-full flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                        <span className="text-2xl">{subject.icon}</span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-gray-600 group-hover:text-gray-700 transition-colors">
-                    {curriculumData.curriculum[selectedGrade]?.[subject.key as Subject]?.topics?.length || 0} topics available
-                  </p>
-                </button>
-              ))}
+                    <p className="text-gray-600 group-hover:text-gray-700 transition-colors mb-2">
+                      {subjectData.topics.length} topics available
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

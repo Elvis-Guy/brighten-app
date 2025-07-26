@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext'; // Use the type-safe hook
-import { HomeIcon, BookOpenIcon, CloudUploadIcon, EyeIcon, CogIcon, SunIcon, UserIcon } from '@/components/icons';
+import { HomeIcon, BookOpenIcon, CloudUploadIcon, CogIcon, SunIcon, UserIcon } from '@/components/icons';
 
 const Navbar = () => {
   const { authState, signOut } = useAppContext();

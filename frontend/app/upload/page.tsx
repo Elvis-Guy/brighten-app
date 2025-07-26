@@ -55,8 +55,8 @@ const UploadSimplifyPage: React.FC = () => {
           const textContent = await page.getTextContent();
           
           const pageText = textContent.items
-            .filter((item: any) => item.str && item.str.trim())
-            .map((item: any) => item.str.trim())
+            .filter((item: unknown) => typeof item === 'object' && item !== null && 'str' in item && (item as {str: string}).str && (item as {str: string}).str.trim())
+            .map((item: unknown) => (item as {str: string}).str.trim())
             .join(' ');
           
           if (pageText.trim()) {
@@ -84,7 +84,7 @@ const UploadSimplifyPage: React.FC = () => {
       
       if (error instanceof Error) {
         if (error.message === 'NO_TEXT_FOUND') {
-          throw new Error('This PDF appears to be image-based or has no extractable text. Please try a text-based PDF or use the "Paste Text" option instead.');
+          throw new Error('This PDF appears to be image-based or has no extractable text. Please try a text-based PDF or use the &quot;Paste Text&quot; option instead.');
         } else if (error.message.includes('Invalid PDF')) {
           throw new Error('Invalid PDF file. Please make sure the file is a valid PDF document.');
         } else if (error.message.includes('password')) {
@@ -92,7 +92,7 @@ const UploadSimplifyPage: React.FC = () => {
         }
       }
       
-      throw new Error('Unable to process this PDF file. Please try a different PDF or use the "Paste Text" option instead.');
+      throw new Error('Unable to process this PDF file. Please try a different PDF or use the &quot;Paste Text&quot; option instead.');
     }
   };
 
@@ -294,7 +294,7 @@ const UploadSimplifyPage: React.FC = () => {
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-xs text-yellow-800">
             <strong>💡 PDF Troubleshooting:</strong> If PDF upload fails, the file might be image-based or protected. 
-            Use the "Paste Text" option to manually input the content instead.
+            Use the &quot;Paste Text&quot; option to manually input the content instead.
           </p>
         </div>
       </div>

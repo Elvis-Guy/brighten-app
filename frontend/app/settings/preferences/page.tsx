@@ -30,7 +30,7 @@ const PreferencesPage: React.FC = () => {
     setDirty(false);
   }, [userPreferences]);
 
-  const handleChange = (field: keyof typeof form, value: any) => {
+  const handleChange = (field: keyof typeof form, value: string | number | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setDirty(true);
   };

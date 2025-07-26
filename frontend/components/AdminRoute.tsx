@@ -7,6 +7,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
+import type { AdminPermissions } from '@/types';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -19,7 +20,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
   requiredPermission,
   fallbackPath = '/' 
 }) => {
-  const { authState, adminPermissions, checkAdminPermission } = useAppContext();
+  const { authState, checkAdminPermission } = useAppContext();
   const router = useRouter();
 
   // Show loading while authentication state is being determined
@@ -61,7 +62,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h2>
           <p className="text-gray-600 mb-6">
-            You don't have administrator privileges. Please contact your system administrator if you need access.
+            You don&apos;t have administrator privileges. Please contact your system administrator if you need access.
           </p>
           <button
             onClick={() => router.push(fallbackPath)}
@@ -75,7 +76,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // Check specific permission if required
-  if (requiredPermission && !checkAdminPermission(requiredPermission as any)) {
+  if (requiredPermission && !checkAdminPermission(requiredPermission as keyof AdminPermissions)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center max-w-md mx-auto p-6">
@@ -86,7 +87,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Insufficient Permissions</h2>
           <p className="text-gray-600 mb-6">
-            You don't have the required permissions to access this feature. Contact your administrator for access.
+            You don&apos;t have the required permissions to access this feature. Contact your administrator for access.
           </p>
           <button
             onClick={() => router.push('/admin')}

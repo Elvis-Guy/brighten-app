@@ -53,7 +53,7 @@ const PrivacyPage = () => {
                 <h3 className="font-semibold text-green-800 mb-2">Account Information</h3>
                 <ul className="text-gray-700 space-y-1">
                   <li>• Your name and email address</li>
-                  <li>• Your grade level and subjects you're studying</li>
+                  <li>• Your grade level and subjects you&apos;re studying</li>
                   <li>• Your language and accessibility preferences</li>
                 </ul>
               </div>
@@ -70,7 +70,7 @@ const PrivacyPage = () => {
                   <li>• Customize lessons for your learning style</li>
                   <li>• Track your progress and celebrate achievements</li>
                   <li>• Suggest topics that match your interests</li>
-                  <li>• Provide content that's easier to read and understand</li>
+                  <li>• Provide content that&apos;s easier to read and understand</li>
                 </ul>
               </div>
               
@@ -104,7 +104,7 @@ const PrivacyPage = () => {
                 <div>
                   <h3 className="font-semibold text-yellow-800 mb-2">For Students Under 18:</h3>
                   <p className="text-gray-700">
-                    If you're under 18, your parents or guardians have given permission for you to use Brighten. 
+                    If you&apos;re under 18, your parents or guardians have given permission for you to use Brighten. 
                     They can contact us anytime to ask about your information or request changes.
                   </p>
                 </div>
@@ -145,7 +145,7 @@ const PrivacyPage = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-4">AI and Your Learning</h2>
             <div className="bg-indigo-50 p-6 rounded-lg">
               <p className="text-gray-700 mb-4">
-                We use artificial intelligence (AI) to help create learning content that's easier for dyslexic students to understand. 
+                We use artificial intelligence (AI) to help create learning content that&apos;s easier for dyslexic students to understand. 
                 This AI looks at how you learn best and creates materials just for you.
               </p>
               <div className="space-y-2">
@@ -165,7 +165,7 @@ const PrivacyPage = () => {
             <h2 className="text-2xl font-bold text-orange-800 mb-4">Questions or Concerns?</h2>
             <p className="text-gray-700 mb-4">
               If you have questions about this privacy policy or how we handle your information, 
-              please don't hesitate to reach out to us. We're here to help!
+              please don&apos;t hesitate to reach out to us. We&apos;re here to help!
             </p>
             <div className="space-y-2">
               <p className="text-gray-700"><strong>Contact us:</strong></p>

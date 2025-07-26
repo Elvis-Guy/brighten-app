@@ -73,13 +73,13 @@ const Footer = () => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            <a href="mailto:support@brighten.edu" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">support@brighten.edu</a>
+            <a href="mailto:brightenseducation@gmail.com" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">brightenseducation@gmail.com</a>
           </li>
           <li className="flex items-center space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.134l-1.498.999a1 1 0 00-.472 1.295l.02.02a1 1 0 00.315.606l1.498 1.498a1 1 0 001.295.472l.999-1.498a1 1 0 011.134-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
-            <a href="tel:+254123456789" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">+254 123 456 789</a>
+            <a href="tel:+250786571189" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">+250 786 571 189</a>
           </li>
         </ul>
       </div>

@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 const ProfilePage: React.FC = () => {
-  const { authState, userPreferences } = useAppContext();
+  const { authState } = useAppContext();
   const [displayName, setDisplayName] = useState(authState.user?.displayName || '');
   const [originalDisplayName, setOriginalDisplayName] = useState(authState.user?.displayName || '');
   const [password, setPassword] = useState('');
