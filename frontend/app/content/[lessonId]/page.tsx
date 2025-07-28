@@ -10,10 +10,9 @@ import { useAppContext } from '@/context/AppContext';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { curriculumContent } from '@/data/curriculumData';
 import curriculumData from '@/curriculum_content.json';
-import { callSimplificationAPI } from '@/lib/api';
+import { callBestAvailableAPI } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import TextToSpeech from '@/components/ui/TextToSpeech';
-import APIDebugger from '@/components/ui/APIDebugger';
 import QuizComponent from '@/components/ui/QuizComponent';
 import QuizResults from '@/components/ui/QuizResults';
 import { getQuizByTopic } from '@/data/sampleQuizzes';
@@ -289,9 +288,6 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
 
 
   const handleGenerateSimplifiedText = async () => {
-    // Import the smart API caller
-    const { callBestAvailableAPI } = await import('@/lib/api');
-    
     const simplifiedObj = await callBestAvailableAPI(selectedLesson.content.original, setLoadingText, (message) => {
       console.warn(message);
       // You could show a toast notification here instead of console.warn
@@ -479,8 +475,6 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
   return (
     <ProtectedRoute>
       <div className="p-6 md:p-10">
-        {/* Temporary API Debugger - Remove after fixing server */}
-        <APIDebugger />
         
         {/* Header with Back Button */}
         <div className="flex items-center justify-between mb-6">
@@ -560,51 +554,53 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
           </div>
         )}
 
-        {/* Progress Section */}
-        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-6 mb-8 border border-orange-200">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Learning Progress</h3>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span>Progress: {progressPercentage}%</span>
-                {currentLessonProgress?.lastAccessedAt && (
-                  <>
-                    <span>•</span>
-                    <span>Last accessed: {new Date(currentLessonProgress.lastAccessedAt).toLocaleDateString()}</span>
-                  </>
+        {/* Progress Section - Only show for curriculum content, not uploaded content */}
+        {!selectedLesson.id.startsWith('uploaded-') && !selectedLesson.id.startsWith('pasted-') && (
+          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-6 mb-8 border border-orange-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Learning Progress</h3>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <span>Progress: {progressPercentage}%</span>
+                  {currentLessonProgress?.lastAccessedAt && (
+                    <>
+                      <span>•</span>
+                      <span>Last accessed: {new Date(currentLessonProgress.lastAccessedAt).toLocaleDateString()}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-4">
+                {/* Quiz Button */}
+                {!showQuiz && !showQuizResults && (
+                  <button
+                    onClick={handleStartQuiz}
+                    className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200 font-medium"
+                  >
+                    Take Quiz
+                  </button>
+                )}
+                
+                {!isLessonCompleted && (
+                  <button
+                    onClick={handleMarkComplete}
+                    className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200 font-medium"
+                  >
+                    Mark as Complete
+                  </button>
+                )}
+                {isLessonCompleted && (
+                  <div className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-full">
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">Completed</span>
+                  </div>
                 )}
               </div>
             </div>
-            <div className="flex space-x-3 mt-4">
-              {/* Quiz Button */}
-              {!showQuiz && !showQuizResults && (
-                <button
-                  onClick={handleStartQuiz}
-                  className="px-6 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200 font-medium"
-                >
-                  Take Quiz
-                </button>
-              )}
-              
-              {!isLessonCompleted && (
-                <button
-                  onClick={handleMarkComplete}
-                  className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200 font-medium"
-                >
-                  Mark as Complete
-                </button>
-              )}
-              {isLessonCompleted && (
-                <div className="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-full">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">Completed</span>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
           {/* Original Text */}
