@@ -26,75 +26,115 @@ export const callSimplificationAPI = async (
   customAlert: (message: string) => void
 ): Promise<Record<string, unknown> | null> => {
   setLoadingText('Simplifying text with AI...');
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-    console.log(`🚀 Making API request to: ${apiUrl}/simplify`);
-    console.log(`📝 Text length: ${text.length} characters`);
-    
-    const response = await fetch(`${apiUrl}/simplify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: text
-      })
-    });
-
-    console.log(`📊 API Response status: ${response.status} ${response.statusText}`);
-
-    if (!response.ok) {
-      // Try to get more error details from the response
-      let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorResponse = await response.text();
-        console.error(`❌ API Error Response:`, errorResponse);
-        errorDetails = errorResponse || errorDetails;
-      } catch (parseError) {
-        console.warn('Could not parse error response:', parseError);
+  
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const maxRetries = 2;
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🚀 Making API request to: ${apiUrl}/simplify (attempt ${attempt}/${maxRetries})`);
+      console.log(`📝 Text length: ${text.length} characters`);
+      
+      // First check if the API is healthy
+      if (attempt === 1) {
+        setLoadingText('Checking API status...');
+        try {
+          const healthResponse = await fetch(`${apiUrl}/health`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (!healthResponse.ok) {
+            const healthData = await healthResponse.json();
+            console.warn('⚠️ API health check failed:', healthData);
+            
+            if (healthData.error === "Model not loaded") {
+              setLoadingText('Model is loading, please wait...');
+              customAlert('🔄 The AI model is currently loading. This may take a moment. Please try again in 30 seconds.');
+              return null;
+            }
+          }
+        } catch (healthError) {
+          console.warn('Health check failed, proceeding with request:', healthError);
+        }
       }
       
-      throw new Error(`API Error: ${errorDetails}`);
-    }
+      setLoadingText(`Simplifying text with AI... (attempt ${attempt})`);
+      
+      const response = await fetch(`${apiUrl}/simplify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          structured: true
+        })
+      });
 
-    const result = await response.json();
-    console.log(`✅ API Success:`, result);
-    setLoadingText('');
-    return result;
-  } catch (error) {
-    console.error("Error calling simplification API:", error);
-    setLoadingText('');
-    
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-      customAlert(`🌐 Network Error: Could not connect to the API at ${apiUrl}. Please check your internet connection and try again.`);
-    } else if (error instanceof Error && error.message.includes('MODEL_NOT_LOADED')) {
-      customAlert(`🤖 Server Starting: The AI model is still loading on the server. Please wait a moment and try again.`);
-    } else if (error instanceof Error && error.message.includes('MODEL_NOT_READY')) {
-      customAlert(`🤖 AI Model Not Ready: The simplification model is still warming up. Please wait a moment and try again.`);
-    } else if (error instanceof Error && error.message.includes('PROCESSING_ERROR')) {
-      // Parse the error to get more details
-      try {
-        const errorMatch = error.message.match(/{"code":"PROCESSING_ERROR","error":"([^"]+)"/);
-        const detailedError = errorMatch ? errorMatch[1] : error.message;
-        
-        if (detailedError.includes('NoneType') && detailedError.includes('is_ready')) {
-          customAlert(`🚨 Server Configuration Issue: The AI model failed to initialize on the server. This is usually due to:\n\n• Missing model files\n• Incorrect environment variables\n• Missing dependencies\n\nPlease check your Render deployment logs and ensure all required environment variables and dependencies are configured.`);
-        } else {
-          customAlert(`🚨 Processing Error: ${detailedError}\n\nThis appears to be a server-side issue. Please check the deployment logs.`);
+      console.log(`📊 API Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        // Try to get more error details from the response
+        let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorResponse = await response.json();
+          console.error(`❌ API Error Response:`, errorResponse);
+          
+          if (errorResponse.code === 'MODEL_NOT_LOADED' || errorResponse.code === 'MODEL_NOT_READY') {
+            setLoadingText('');
+            customAlert('🔄 The AI model is still loading. Please wait a moment and try again.');
+            return null;
+          }
+          
+          errorDetails = errorResponse.error || errorDetails;
+        } catch (parseError) {
+          console.warn('Could not parse error response:', parseError);
         }
-      } catch (parseError) {
-        customAlert(`🚨 Server Error: There was an issue processing your request on the server. Please check the deployment logs.`);
+        
+        throw new Error(`API Error: ${errorDetails}`);
       }
-    } else if (error instanceof Error && error.message.includes('500')) {
-      customAlert(`🚨 Server Error: The API server is experiencing issues. This might be due to:\n• Server startup problems\n• Missing dependencies\n• Resource limitations\n\nPlease check your Render deployment logs.`);
-    } else if (error instanceof Error) {
-      customAlert(`❌ API Error: ${error.message}`);
-    } else {
-      customAlert("An unexpected error occurred during text simplification. Please try again.");
+
+      const result = await response.json();
+      console.log(`✅ API Success:`, result);
+      setLoadingText('');
+      return result;
+      
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`❌ API request failed (attempt ${attempt}):`, lastError);
+      
+      // Check if it's a network error
+      if (lastError.message.includes('Failed to fetch') || lastError.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+        console.error('🌐 Network Error: Could not connect to the API at', apiUrl, '. Please check your internet connection and try again.');
+        
+        if (attempt === maxRetries) {
+          setLoadingText('');
+          customAlert(`🌐 Network Error: Could not connect to the API. Please check your internet connection and try again. (${lastError.message})`);
+          return null;
+        }
+        
+        // Wait before retrying network errors
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+        continue;
+      }
+      
+      // For other errors, retry only once more
+      if (attempt === maxRetries) {
+        setLoadingText('');
+        customAlert(`❌ Simplification failed: ${lastError.message}`);
+        return null;
+      }
+      
+      // Brief wait before retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    return null;
   }
+  
+  setLoadingText('');
+  customAlert(`❌ All attempts failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  return null;
 };
 
 export const callGeminiAPI = async (

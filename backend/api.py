@@ -21,7 +21,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for web applications
+
+# Enhanced CORS configuration
+cors_origins = [
+    "https://brighten-app.vercel.app",
+    "https://brighten-app-dc746.web.app",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000"
+]
+
+CORS(app, origins=cors_origins, methods=[
+     'GET', 'POST'], allow_headers=['Content-Type'])
 
 
 class DyslexiaFriendlySimplifier:
@@ -210,53 +221,118 @@ def home():
     })
 
 
+@app.route('/reinitialize', methods=['POST'])
+def reinitialize_model():
+    """Force reinitialize the model - useful for troubleshooting"""
+    global model
+
+    try:
+        logger.info("🔄 Force reinitializing model...")
+
+        # Clear the existing model
+        if model is not None:
+            del model
+            model = None
+
+        # Clear cache if it exists
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        # Reinitialize
+        initialize_model()
+
+        if model is not None and model.is_ready:
+            return jsonify({
+                "success": True,
+                "message": "Model reinitialized successfully",
+                "model_status": "ready",
+                "timestamp": time.time()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Model reinitialization failed",
+                "model_status": "not_ready",
+                "timestamp": time.time()
+            }), 500
+
+    except Exception as e:
+        logger.error(f"❌ Reinitialize error: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": time.time()
+        }), 500
+
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Comprehensive health check endpoint"""
     try:
+        status_code = 200
+
         if model is None:
             return jsonify({
                 "status": "unhealthy",
                 "error": "Model not loaded",
+                "suggestion": "Try POST /reinitialize to reload the model",
+                "model_loaded": False,
+                "model_ready": False,
                 "timestamp": time.time()
-            }), 500
+            }), 503
 
-        # Quick test
+        # Quick test if model exists
         start_time = time.time()
-        test_result = model.simplify_without_cache(
-            "Test sentence for health check.")
-        response_time = time.time() - start_time
+        try:
+            test_result = model.simplify_without_cache(
+                "Test sentence for health check.")
+            response_time = time.time() - start_time
+            test_successful = bool(test_result)
+        except Exception as e:
+            logger.error(f"Health check test failed: {e}")
+            test_result = None
+            response_time = time.time() - start_time
+            test_successful = False
+            status_code = 503
 
         response = {
-            "status": "healthy" if model.is_ready else "loading",
+            "status": "healthy" if (model.is_ready and test_successful) else "degraded",
             "model_loaded": True,
-            "model_ready": model.is_ready,
+            "model_ready": model.is_ready if model else False,
             "model_source": "huggingface",
             "model_url": "https://huggingface.co/elvisbakunzi/dyslexia-friendly-text-simplifier",
-            "device": str(model.device),
+            "device": str(model.device) if model else "unknown",
             "response_time": round(response_time, 3),
-            "test_successful": bool(test_result),
+            "test_successful": test_successful,
+            "test_result": test_result if test_successful else None,
             "timestamp": time.time()
         }
 
+        if not test_successful:
+            response["suggestion"] = "Model loaded but not functioning. Try POST /reinitialize"
+            status_code = 503
+
         # Add cache info if available
         try:
-            cache_info = model.simplify.cache_info()
-            response["cache_info"] = {
-                "hits": cache_info.hits,
-                "misses": cache_info.misses,
-                "maxsize": cache_info.maxsize,
-                "currsize": cache_info.currsize
-            }
+            if hasattr(model, 'simplify') and hasattr(model.simplify, 'cache_info'):
+                cache_info = model.simplify.cache_info()
+                response["cache_info"] = {
+                    "hits": cache_info.hits,
+                    "misses": cache_info.misses,
+                    "maxsize": cache_info.maxsize,
+                    "currsize": cache_info.currsize
+                }
         except:
             pass
 
-        return jsonify(response)
+        return jsonify(response), status_code
+
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return jsonify({
             "status": "unhealthy",
             "error": str(e),
+            "suggestion": "Try POST /reinitialize to reload the model",
             "timestamp": time.time()
         }), 500
 
@@ -384,7 +460,6 @@ def simplify_text():
             "error": f"Processing error: {str(e)}",
             "code": "PROCESSING_ERROR"
         }), 500
-
 
 
 @app.route('/batch', methods=['POST'])
@@ -525,12 +600,32 @@ def initialize_model():
             try:
                 logger.info(
                     "🚀 Initializing Dyslexia-Friendly Text Simplifier...")
+
+                # Set cache directory for models
+                cache_dir = os.getenv('TRANSFORMERS_CACHE', './model_cache')
+                os.makedirs(cache_dir, exist_ok=True)
+
+                # Initialize with longer timeout and better error handling
                 model = DyslexiaFriendlySimplifier(
-                    "elvisbakunzi/dyslexia-friendly-text-simplifier")
+                    "elvisbakunzi/dyslexia-friendly-text-simplifier"
+                )
                 logger.info("✅ Model initialization completed!")
+
+                # Verify model is actually working
+                test_result = model.simplify_without_cache("Test sentence.")
+                if not test_result:
+                    raise Exception("Model test failed - empty result")
+
+                logger.info(f"✅ Model test successful: {test_result}")
+
             except Exception as e:
                 logger.error(f"❌ Failed to initialize model: {e}")
-                raise
+                logger.error(f"❌ Error type: {type(e).__name__}")
+
+                # Don't exit - let the server start but mark as unhealthy
+                model = None
+                logger.warning(
+                    "⚠️ Server will start but model is not available")
 
 
 def main():
@@ -541,12 +636,12 @@ def main():
     logger.info("🤗 Using model: elvisbakunzi/dyslexia-friendly-text-simplifier")
     logger.info("🌐 Optimized for online hosting")
 
-    # Initialize model
+    # Initialize model (don't exit on failure)
     try:
         initialize_model()
     except Exception as e:
-        logger.error(f"❌ Startup failed: {e}")
-        exit(1)
+        logger.error(f"⚠️ Model initialization failed: {e}")
+        logger.info("🌐 Starting server anyway - model will be unavailable")
 
     # Server configuration
     port = int(os.environ.get('PORT', 5001))
