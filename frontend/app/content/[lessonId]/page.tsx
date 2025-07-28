@@ -289,7 +289,14 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
 
 
   const handleGenerateSimplifiedText = async () => {
-    const simplifiedObj = await callSimplificationAPI(selectedLesson.content.original, setLoadingText, console.warn);
+    // Import the smart API caller
+    const { callBestAvailableAPI } = await import('@/lib/api');
+    
+    const simplifiedObj = await callBestAvailableAPI(selectedLesson.content.original, setLoadingText, (message) => {
+      console.warn(message);
+      // You could show a toast notification here instead of console.warn
+    });
+    
     if (simplifiedObj && typeof simplifiedObj === 'object') {
       setSelectedLesson(prev => {
         if (prev) {

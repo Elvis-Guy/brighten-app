@@ -431,3 +431,139 @@ export const generateVisualizationReplicate = async (
 // Legacy functions (keep for backward compatibility)
 export const generateVisualization = generateVisualizationHF;
 export const callLocalSimplificationAPI = callSimplificationAPI;
+
+// Alternative: Direct Hugging Face Inference API
+export const callHuggingFaceAPI = async (
+  text: string,
+  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
+  customAlert: (message: string) => void
+): Promise<Record<string, unknown> | null> => {
+  setLoadingText('Simplifying text with Hugging Face AI...');
+  
+  const maxRetries = 2;
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🤗 Making Hugging Face API request (attempt ${attempt}/${maxRetries})`);
+      console.log(`📝 Text length: ${text.length} characters`);
+      
+      setLoadingText(`Simplifying with Hugging Face AI... (attempt ${attempt})`);
+      
+      const response = await fetch(
+        "https://api-inference.huggingface.co/models/elvisbakunzi/dyslexia-friendly-text-simplifier",
+        {
+          headers: {
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          body: JSON.stringify({
+            inputs: text,
+            parameters: {
+              max_length: 256,
+              min_length: 20,
+              num_beams: 3,
+              length_penalty: 0.8,
+              early_stopping: true,
+              do_sample: false,
+              no_repeat_ngram_size: 2
+            }
+          }),
+        }
+      );
+
+      console.log(`📊 Hugging Face API Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        
+        if (response.status === 503 && errorData?.error?.includes('loading')) {
+          if (attempt === 1) {
+            setLoadingText('Model is loading on Hugging Face, waiting...');
+            await new Promise(resolve => setTimeout(resolve, 20000)); // Wait 20 seconds
+            continue;
+          }
+        }
+        
+        throw new Error(`Hugging Face API Error: ${response.status} - ${errorData?.error || response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ Hugging Face API Success:`, result);
+
+      // Transform HF response to match our expected format
+      const simplifiedText = Array.isArray(result) && result[0]?.generated_text 
+        ? result[0].generated_text 
+        : typeof result === 'string' 
+        ? result 
+        : 'Unable to process text';
+
+      // Calculate metrics
+      const originalWords = text.split(' ').length;
+      const simplifiedWords = simplifiedText.split(' ').length;
+      const wordReduction = ((originalWords - simplifiedWords) / originalWords * 100);
+
+      const transformedResult = {
+        success: true,
+        original: text,
+        simplified: simplifiedText,
+        metrics: {
+          processing_time: 0, // HF doesn't provide this
+          original_words: originalWords,
+          simplified_words: simplifiedWords,
+          word_reduction_percent: Math.round(wordReduction),
+          characters_original: text.length,
+          characters_simplified: simplifiedText.length
+        },
+        model: {
+          source: "huggingface_direct",
+          model_id: "elvisbakunzi/dyslexia-friendly-text-simplifier"
+        },
+        timestamp: Date.now() / 1000
+      };
+
+      setLoadingText('');
+      return transformedResult;
+      
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`❌ Hugging Face API request failed (attempt ${attempt}):`, lastError);
+      
+      if (attempt === maxRetries) {
+        setLoadingText('');
+        customAlert(`❌ Hugging Face simplification failed: ${lastError.message}`);
+        return null;
+      }
+      
+      // Brief wait before retry
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  
+  setLoadingText('');
+  customAlert(`❌ All Hugging Face attempts failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  return null;
+};
+
+// Smart API caller that tries both approaches
+export const callBestAvailableAPI = async (
+  text: string,
+  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
+  customAlert: (message: string) => void
+): Promise<Record<string, unknown> | null> => {
+  // First try our custom API
+  console.log('🎯 Trying custom API first...');
+  const customResult = await callSimplificationAPI(text, setLoadingText, () => {});
+  
+  if (customResult) {
+    console.log('✅ Custom API succeeded');
+    return customResult;
+  }
+  
+  // If custom API fails, try Hugging Face direct
+  console.log('🤗 Falling back to Hugging Face direct API...');
+  customAlert('🔄 Primary API unavailable, trying Hugging Face directly...');
+  
+  return await callHuggingFaceAPI(text, setLoadingText, customAlert);
+};
