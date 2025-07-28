@@ -1,408 +1,403 @@
 // ============================================================================
 // FILE: app/contact/page.tsx
-// Description: Contact Us page for user inquiries and support.
+// Description: Contact Us page with multiple contact methods and support information
 // ============================================================================
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
+import { SunIcon } from '@/components/icons';
 
-const ContactPage: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    category: 'general',
-    message: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
-
-    // Simulate form submission
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setSubmitStatus('success');
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        category: 'general',
-        message: ''
-      });
-    } catch (error) {
-      setSubmitStatus('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const contactInfo = [
-    {
-      icon: '📧',
-      title: 'Email Us',
-      content: 'hello@brighten.edu',
-      description: 'Get in touch for support or inquiries',
-      action: 'mailto:hello@brighten.edu'
-    },
-    {
-      icon: '📱',
-      title: 'Phone Support',
-      content: '+1 (555) 123-4567',
-      description: 'Monday - Friday, 9 AM - 6 PM EST',
-      action: 'tel:+15551234567'
-    },
-    {
-      icon: '💬',
-      title: 'Live Chat',
-      content: 'Chat with us',
-      description: 'Available during business hours',
-      action: '#'
-    },
-    {
-      icon: '📍',
-      title: 'Office Location',
-      content: 'San Francisco, CA',
-      description: 'Virtual-first company',
-      action: '#'
-    }
-  ];
-
-  const faqData = [
-    {
-      question: 'How does Brighten help students with dyslexia?',
-      answer: 'Brighten uses AI to simplify complex texts, provides dyslexia-friendly fonts and layouts, offers audio narration, and creates visual learning aids to make content more accessible and engaging for students with dyslexia.'
-    },
-    {
-      question: 'Is Brighten suitable for all grade levels?',
-      answer: 'Currently, Brighten focuses on grades 10-12 with comprehensive curriculum content in Mathematics, Science, and English. We are working on expanding to additional grade levels based on user feedback.'
-    },
-    {
-      question: 'Can I upload my own educational content?',
-      answer: 'Yes! You can upload any educational text, and our AI will automatically simplify it to make it more accessible and easier to understand while maintaining the educational value.'
-    },
-    {
-      question: 'How much does Brighten cost?',
-      answer: 'Brighten offers a free tier with basic features. Premium plans start at $9.99/month and include advanced AI features, progress tracking, and personalized learning paths.'
-    },
-    {
-      question: 'Is my data secure with Brighten?',
-      answer: 'Absolutely. We take data privacy seriously and comply with GDPR and other privacy regulations. Your learning data is encrypted and you have full control over your information.'
-    },
-    {
-      question: 'Can teachers use Brighten in their classrooms?',
-      answer: 'Yes! We offer special educator accounts with classroom management features, student progress tracking, and bulk content processing capabilities.'
-    }
-  ];
-
-  const [openFAQ, setOpenFAQ] = useState<number | null>(null);
-
+const ContactPage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
-      {/* Enhanced Header */}
-      <div className={`px-6 md:px-10 pt-10 pb-16 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-orange-400 to-red-400 rounded-full animate-ping opacity-20"></div>
-            </div>
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <SunIcon className="h-10 w-10 text-orange-500" />
+            <h1 className="text-4xl font-bold text-gray-800">Contact Us</h1>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-6 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-            Contact Us
-          </h1>
-          <div className="w-24 h-1 bg-gradient-to-r from-orange-500 to-red-500 mx-auto mb-6 rounded-full"></div>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
-            Have questions about Brighten? Need support? Want to share feedback? 
-            We'd love to hear from you and help you on your learning journey.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            We&apos;re here to help you succeed! Get in touch with our support team for any questions or assistance.
           </p>
         </div>
-      </div>
 
-      {/* Contact Information Grid */}
-      <div className="bg-white py-16 px-6 md:px-10 shadow-lg">
-        <div className="max-w-6xl mx-auto">
-          <div className={`text-center mb-12 transform transition-all duration-1000 delay-200 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <h2 className="text-4xl font-bold text-gray-800 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Get In Touch
-            </h2>
-            <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mb-6 rounded-full"></div>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Choose the best way to reach us. Our team is here to help you succeed.
+        {/* Content */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-8">
+          
+          {/* Welcome Message */}
+          <div className="border-l-4 border-orange-500 pl-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">We&apos;re Here to Help!</h2>
+            <p className="text-gray-700 text-lg leading-relaxed">
+              Whether you&apos;re a student, parent, or teacher, our team is dedicated to supporting your 
+              learning journey. Don&apos;t hesitate to reach out – we understand the unique challenges 
+              of dyslexia and are here to provide the help you need.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {contactInfo.map((info, index) => (
-              <div
-                key={index}
-                className={`text-center p-6 bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 transform hover:scale-105 border border-gray-100 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
-                style={{ animationDelay: `${(index + 2) * 200}ms` }}
-              >
-                <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <span className="text-2xl">{info.icon}</span>
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{info.title}</h3>
-                <p className="text-lg font-semibold text-orange-600 mb-2">{info.content}</p>
-                <p className="text-sm text-gray-600 mb-4">{info.description}</p>
-                {info.action !== '#' ? (
-                  <a
-                    href={info.action}
-                    className="inline-block px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
-                  >
-                    {info.title === 'Email Us' ? 'Send Email' : 'Contact'}
-                  </a>
-                ) : (
-                  <span className="inline-block px-4 py-2 bg-gray-300 text-gray-600 rounded-lg text-sm font-medium">
-                    Coming Soon
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Contact Form Section */}
-      <div className="bg-gradient-to-r from-gray-50 to-blue-50 py-16 px-6 md:px-10">
-        <div className="max-w-4xl mx-auto">
-          <div className={`text-center mb-12 transform transition-all duration-1000 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <h2 className="text-4xl font-bold text-gray-800 mb-4 bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-              Send Us a Message
-            </h2>
-            <div className="w-16 h-1 bg-gradient-to-r from-green-500 to-teal-500 mx-auto mb-6 rounded-full"></div>
-            <p className="text-lg text-gray-600">
-              Fill out the form below and we'll get back to you as soon as possible.
-            </p>
-          </div>
-
-          <div className={`bg-white rounded-2xl shadow-xl p-8 border border-gray-100 transform transition-all duration-1000 delay-600 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
-                    placeholder="Your full name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="category" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
-                  >
-                    <option value="general">General Inquiry</option>
-                    <option value="support">Technical Support</option>
-                    <option value="billing">Billing Question</option>
-                    <option value="feature">Feature Request</option>
-                    <option value="bug">Bug Report</option>
-                    <option value="education">Educational Partnership</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Subject *
-                  </label>
-                  <input
-                    type="text"
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300"
-                    placeholder="Brief subject line"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="message" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Message *
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  required
-                  rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 resize-vertical"
-                  placeholder="Tell us how we can help you..."
-                />
-              </div>
-
-              {submitStatus === 'success' && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-white text-sm">✓</span>
-                    </div>
-                    <p className="text-green-800 font-medium">
-                      Thank you! Your message has been sent successfully. We'll get back to you soon.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {submitStatus === 'error' && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-white text-sm">!</span>
-                    </div>
-                    <p className="text-red-800 font-medium">
-                      Sorry, there was an error sending your message. Please try again.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Sending...
-                    </div>
-                  ) : (
-                    'Send Message'
-                  )}
-                </button>
-                <Link href="/">
-                  <button
-                    type="button"
-                    className="flex-1 border-2 border-orange-500 text-orange-500 px-8 py-4 rounded-lg font-semibold hover:bg-orange-50 transition-all duration-300 transform hover:scale-105"
-                  >
-                    Back to Home
-                  </button>
-                </Link>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      {/* FAQ Section */}
-      <div className="bg-white py-16 px-6 md:px-10">
-        <div className="max-w-4xl mx-auto">
-          <div className={`text-center mb-12 transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <h2 className="text-4xl font-bold text-gray-800 mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Frequently Asked Questions
-            </h2>
-            <div className="w-16 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto mb-6 rounded-full"></div>
-            <p className="text-lg text-gray-600">
-              Find quick answers to common questions about Brighten.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {faqData.map((faq, index) => (
-              <div
-                key={index}
-                className={`bg-gray-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
-                style={{ animationDelay: `${(index + 8) * 100}ms` }}
-              >
-                <button
-                  onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-100 rounded-2xl transition-colors duration-200"
-                >
-                  <span className="font-semibold text-gray-800 text-lg">{faq.question}</span>
-                  <div className={`w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center transition-transform duration-300 ${openFAQ === index ? 'rotate-180' : ''}`}>
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          {/* Quick Contact */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Get In Touch Quickly</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-orange-50 p-6 rounded-lg">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="bg-orange-500 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </div>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${openFAQ === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <div className="px-6 pb-4">
-                    <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                  <h3 className="text-xl font-bold text-orange-800">Email Support</h3>
+                </div>
+                <p className="text-gray-700 mb-3">
+                  Send us an email and we&apos;ll get back to you within 24 hours.
+                </p>
+                <a 
+                  href="mailto:brightenseducation@gmail.com" 
+                  className="inline-flex items-center space-x-2 text-orange-600 hover:text-orange-800 font-semibold"
+                >
+                  <span>brightenseducation@gmail.com</span>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+              
+              <div className="bg-green-50 p-6 rounded-lg">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="bg-green-500 p-3 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.134l-1.498.999a1 1 0 00-.472 1.295l.02.02a1 1 0 00.315.606l1.498 1.498a1 1 0 001.295.472l.999-1.498a1 1 0 011.134-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-green-800">Phone Support</h3>
+                </div>
+                <p className="text-gray-700 mb-3">
+                  Call us directly for immediate assistance with urgent issues.
+                </p>
+                <a 
+                  href="tel:+250786571189" 
+                  className="inline-flex items-center space-x-2 text-green-600 hover:text-green-800 font-semibold"
+                >
+                  <span>+250 786 571 189</span>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Support Hours */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Support Hours</h2>
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white p-4 rounded-lg">
+                  <h3 className="font-semibold text-blue-800 mb-2">📧 Email Support</h3>
+                  <ul className="text-gray-700 text-sm space-y-1">
+                    <li>• Available 24/7</li>
+                    <li>• Response within 24 hours</li>
+                    <li>• Priority response for urgent issues</li>
+                    <li>• Detailed written explanations</li>
+                  </ul>
+                </div>
+                
+                <div className="bg-white p-4 rounded-lg">
+                  <h3 className="font-semibold text-blue-800 mb-2">📞 Phone Support</h3>
+                  <ul className="text-gray-700 text-sm space-y-1">
+                    <li>• Monday - Friday: 8:00 AM - 6:00 PM EAT</li>
+                    <li>• Saturday: 9:00 AM - 2:00 PM EAT</li>
+                    <li>• Emergency support available</li>
+                    <li>• Voicemail checked regularly</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* What We Can Help With */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">How We Can Help You</h2>
+            <div className="bg-purple-50 p-6 rounded-lg">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg">
+                    <h3 className="font-semibold text-purple-800 mb-2">🎓 For Students</h3>
+                    <ul className="text-gray-700 text-sm space-y-1">
+                      <li>• Help with account setup and navigation</li>
+                      <li>• Understanding how to use features</li>
+                      <li>• Technical troubleshooting</li>
+                      <li>• Learning strategy suggestions</li>
+                      <li>• Progress tracking questions</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg">
+                    <h3 className="font-semibold text-purple-800 mb-2">👨‍🏫 For Teachers</h3>
+                    <ul className="text-gray-700 text-sm space-y-1">
+                      <li>• Classroom integration guidance</li>
+                      <li>• Student account management</li>
+                      <li>• Curriculum alignment support</li>
+                      <li>• Professional development requests</li>
+                      <li>• Bulk account setup assistance</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg">
+                    <h3 className="font-semibold text-purple-800 mb-2">👪 For Parents</h3>
+                    <ul className="text-gray-700 text-sm space-y-1">
+                      <li>• Supporting your child at home</li>
+                      <li>• Understanding progress reports</li>
+                      <li>• Setting up parental oversight</li>
+                      <li>• Connecting with schools</li>
+                      <li>• General dyslexia support questions</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg">
+                    <h3 className="font-semibold text-purple-800 mb-2">🛠️ Technical Issues</h3>
+                    <ul className="text-gray-700 text-sm space-y-1">
+                      <li>• Login and password problems</li>
+                      <li>• Content not loading properly</li>
+                      <li>• Audio/video feature issues</li>
+                      <li>• Mobile device compatibility</li>
+                      <li>• Browser-specific problems</li>
+                    </ul>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Call to Action */}
-      <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white py-16 px-6 md:px-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className={`transform transition-all duration-1000 delay-900 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <h2 className="text-4xl font-bold mb-6">Still Have Questions?</h2>
-            <p className="text-xl mb-8 opacity-90 leading-relaxed">
-              Don't see what you're looking for? Our support team is always ready to help you succeed with Brighten.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/auth/signup">
-                <button className="bg-white text-orange-500 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-                  Get Started Free
-                </button>
-              </Link>
-              <a
-                href="mailto:hello@brighten.edu"
-                className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold hover:bg-white hover:text-orange-500 transition-all duration-300 transform hover:scale-105"
-              >
-                Email Support
-              </a>
             </div>
+          </div>
+
+          {/* Before You Contact Us */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Before You Contact Us</h2>
+            <div className="bg-yellow-50 p-6 rounded-lg">
+              <p className="text-gray-700 mb-4">
+                To help us assist you more quickly, you might find answers in these resources:
+              </p>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white p-4 rounded-lg">
+                  <h3 className="font-semibold text-yellow-800 mb-2">📚 Self-Help Resources</h3>
+                  <ul className="text-gray-700 text-sm space-y-2">
+                    <li>
+                      <Link href="/help" className="text-orange-600 hover:text-orange-800 font-medium">
+                        • Help Center - Step-by-step guides
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/dyslexia-support" className="text-orange-600 hover:text-orange-800 font-medium">
+                        • Dyslexia Support - Learning strategies
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/teacher-resources" className="text-orange-600 hover:text-orange-800 font-medium">
+                        • Teacher Resources - Classroom tools
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/parent-guide" className="text-orange-600 hover:text-orange-800 font-medium">
+                        • Parent Guide - Family support tips
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className="bg-white p-4 rounded-lg">
+                  <h3 className="font-semibold text-yellow-800 mb-2">🔧 Quick Fixes</h3>
+                  <ul className="text-gray-700 text-sm space-y-1">
+                    <li>• Try refreshing your browser page</li>
+                    <li>• Clear your browser cache and cookies</li>
+                    <li>• Check your internet connection</li>
+                    <li>• Try a different web browser</li>
+                    <li>• Restart your device</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Form */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Send Us a Message</h2>
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <p className="text-gray-700 mb-4">
+                Prefer to send us a detailed message? Use the form below and we&apos;ll get back to you soon.
+              </p>
+              <div className="bg-white p-6 rounded-lg">
+                <form className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Your Name <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input 
+                        type="email" 
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        placeholder="Enter your email address"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      I am a... <span className="text-red-500">*</span>
+                    </label>
+                    <select 
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      <option value="">Please select...</option>
+                      <option value="student">Student</option>
+                      <option value="parent">Parent/Guardian</option>
+                      <option value="teacher">Teacher/Educator</option>
+                      <option value="administrator">School Administrator</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Subject <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="What is your message about?"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Message <span className="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                      required
+                      rows={6}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Please describe your question or issue in detail. Include any error messages or specific problems you're experiencing."
+                    />
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="privacy-agree"
+                      className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="privacy-agree" className="text-sm text-gray-700">
+                      I agree to the{" "}
+                      <Link href="/privacy" className="text-orange-600 hover:text-orange-800">
+                        Privacy Policy
+                      </Link>{" "}
+                      and consent to my information being used to respond to my inquiry.
+                    </label>
+                  </div>
+                  
+                  <button 
+                    type="submit"
+                    className="w-full md:w-auto px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                  >
+                    Send Message
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Other Ways to Connect */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Other Ways to Connect</h2>
+            <div className="bg-indigo-50 p-6 rounded-lg">
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-white p-4 rounded-lg text-center">
+                  <div className="bg-indigo-500 p-3 rounded-full w-fit mx-auto mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.136-1.333h2.864v-5h-3.972c-3.122 0-4.728 1.865-4.728 4.667v2.333z"/>
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-indigo-800 mb-2">Facebook</h3>
+                  <p className="text-gray-700 text-sm">
+                    Follow us for updates and community discussions
+                  </p>
+                </div>
+                
+                <div className="bg-white p-4 rounded-lg text-center">
+                  <div className="bg-indigo-500 p-3 rounded-full w-fit mx-auto mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.594 0-6.494 2.902-6.494 6.494 0 .509.058 1.007.173 1.487-5.405-.271-10.196-2.868-13.404-6.817-.559.954-.881 2.072-.881 3.292 0 2.254 1.14 4.248 2.873 5.424-.847-.026-1.649-.26-2.35-.647-.029.761.248 1.479.794 2.05-.756.193-1.479.317-2.13.364.692 1.815 2.844 3.15 5.275 3.471-1.077.294-2.219.452-3.402.452-.264 0-.524-.023-.779-.067 1.378 4.301 5.399 7.425 10.165 7.425 12.13 0 18.781-10.038 18.781-18.781 0-.357-.012-.71-.031-1.056.911-.654 1.7-1.477 2.323-2.41Z"/>
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-indigo-800 mb-2">Twitter</h3>
+                  <p className="text-gray-700 text-sm">
+                    Get quick updates and educational tips
+                  </p>
+                </div>
+                
+                <div className="bg-white p-4 rounded-lg text-center">
+                  <div className="bg-indigo-500 p-3 rounded-full w-fit mx-auto mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.07 1.645.07 4.85s-.012 3.584-.07 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.251-.149-4.771-1.699-4.919-4.919-.058-1.265-.07-1.644-.07-4.85s.012-3.583.07-4.85c.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.07 4.85-.07zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.073 4.948.073s3.668-.014 4.948-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM12 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.44-.645 1.44-1.44s-.645-1.44-1.44-1.44z"/>
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-indigo-800 mb-2">Instagram</h3>
+                  <p className="text-gray-700 text-sm">
+                    Visual learning tips and success stories
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Emergency Contact */}
+          <div className="bg-red-50 p-6 rounded-lg border border-red-200">
+            <div className="flex items-start space-x-3">
+              <div className="bg-red-500 p-2 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-800 mb-2">Emergency or Urgent Issues</h3>
+                <p className="text-gray-700 text-sm mb-2">
+                  If you&apos;re experiencing a critical issue that prevents you from accessing important 
+                  learning materials for an exam or assignment due within 24 hours:
+                </p>
+                <p className="text-gray-700 text-sm">
+                  Call us directly at{" "}
+                  <a href="tel:+250786571189" className="text-red-600 hover:text-red-800 font-semibold">
+                    +250 786 571 189
+                  </a>{" "}
+                  and mention &quot;URGENT&quot; in your message.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Last Updated */}
+          <div className="text-center pt-6 border-t border-gray-200">
+            <p className="text-gray-500 text-sm">
+              Last updated: July 2025 • 
+              <Link href="/" className="text-orange-600 hover:text-orange-800 ml-1">
+                Back to Home
+              </Link>
+            </p>
           </div>
         </div>
       </div>

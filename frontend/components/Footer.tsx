@@ -56,10 +56,10 @@ const Footer = () => {
       <div>
         <h4 className="text-xl font-bold text-white mb-4">Resources</h4>
         <ul className="space-y-2">
-          <li><a href="#" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Help Center</a></li>
-          <li><a href="#" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Dyslexia Support</a></li>
-          <li><a href="#" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Teacher Resources</a></li>
-          <li><a href="#" className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Parent Guide</a></li>
+          <li><Link href="/help" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Help Center</button></Link></li>
+          <li><Link href="/dyslexia-support" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Dyslexia Support</button></Link></li>
+          <li><Link href="/teacher-resources" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Teacher Resources</button></Link></li>
+          <li><Link href="/parent-guide" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Parent Guide</button></Link></li>
           <li><Link href="/privacy" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Privacy Policy</button></Link></li>
           <li><Link href="/terms" passHref><button className="text-gray-300 hover:text-orange-500 transition duration-200 text-sm">Terms of Service</button></Link></li>
         </ul>

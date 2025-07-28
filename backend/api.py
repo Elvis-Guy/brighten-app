@@ -285,6 +285,14 @@ def simplify_text():
     start_time = time.time()
 
     try:
+        # Check if model is loaded first
+        if model is None:
+            return jsonify({
+                "success": False,
+                "error": "Model not loaded - server may still be starting up",
+                "code": "MODEL_NOT_LOADED"
+            }), 503
+
         # Validate request
         data = request.get_json()
         if not data:
@@ -324,7 +332,7 @@ def simplify_text():
         if not isinstance(max_length, int) or max_length < 50 or max_length > 512:
             max_length = 256
 
-        # Check model readiness
+        # Check model readiness (FIXED: now we know model is not None)
         if not model.is_ready:
             return jsonify({
                 "success": False,
@@ -376,6 +384,7 @@ def simplify_text():
             "error": f"Processing error: {str(e)}",
             "code": "PROCESSING_ERROR"
         }), 500
+
 
 
 @app.route('/batch', methods=['POST'])

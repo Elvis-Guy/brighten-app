@@ -338,107 +338,173 @@ const HomePage: React.FC = () => {
 
         {/* Enhanced Learning Progress Summary for Authenticated Users */}
         {isAuthenticated && (
-          <div className={`bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-100 transform transition-all duration-1000 delay-200 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Your Learning Progress</h2>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm text-gray-600">Live tracking</span>
+          <div className={`bg-gradient-to-br from-white via-orange-50/30 to-blue-50/30 rounded-3xl shadow-2xl p-6 mb-8 border border-orange-200/50 backdrop-blur-sm transform transition-all duration-1000 delay-200 max-w-2xl mx-auto ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            {/* Compact Header Section */}
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                Your Learning Progress
+              </h2>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm text-green-600 font-medium">Live Tracking</span>
               </div>
             </div>
             {isProgressLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="relative">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-                  <div className="absolute inset-0 animate-spin rounded-full h-12 w-12 border-t-2 border-blue-500" style={{ animationDirection: 'reverse' }}></div>
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="relative mb-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-orange-500 absolute inset-0"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-r-4 border-blue-500 absolute inset-0" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
                 </div>
-                <span className="text-gray-600 ml-4">Loading your progress...</span>
+                <div className="text-center">
+                  <h3 className="text-base font-semibold text-gray-700 mb-1">Loading Progress</h3>
+                  <p className="text-sm text-gray-500">Gathering insights...</p>
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Continue Learning Card */}
                 {(getContinueLearningData() || currentEnrollment) && (
-                  <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-gray-800">Continue Learning</h3>
-                      <BookOpenIcon className="h-6 w-6 text-orange-500 animate-pulse" />
-                    </div>
-                    <div className="mb-4">
-                      <div className="text-3xl font-bold text-orange-600 mb-1">
-                        {getContinueLearningData()?.progress.progressPercentage || 0}%
+                  <div className="group relative">
+                    {/* Gradient Border Effect */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="relative bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-orange-100">
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <BookOpenIcon className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-800">Continue Learning</h3>
+                            <p className="text-xs text-gray-500">Pick up where you left off</p>
+                          </div>
+                        </div>
+                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                       </div>
-                      <div className="w-full bg-orange-200 rounded-full h-2">
-                        <div 
-                          className="bg-orange-500 h-2 rounded-full transition-all duration-500" 
-                          style={{ width: `${getContinueLearningData()?.progress.progressPercentage || 0}%` }}
-                        ></div>
+
+                      {/* Progress Display */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-gray-600">Progress</span>
+                          <span className="text-xl font-bold text-orange-600">
+                            {getContinueLearningData()?.progress.progressPercentage || 0}%
+                          </span>
+                        </div>
+                        
+                        {/* Enhanced Progress Bar */}
+                        <div className="relative">
+                          <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                            <div 
+                              className="bg-gradient-to-r from-orange-400 to-orange-600 h-3 rounded-full transition-all duration-1000 ease-out shadow-lg relative overflow-hidden" 
+                              style={{ width: `${getContinueLearningData()?.progress.progressPercentage || 0}%` }}
+                            >
+                              <div className="absolute inset-0 bg-white/30 rounded-full animate-pulse"></div>
+                            </div>
+                          </div>
+                          <div className="absolute -top-1 -right-1">
+                            <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                              ✓
+                            </div>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Action Button */}
+                      <button
+                        onClick={handleContinueLearning}
+                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:from-orange-600 hover:to-orange-700 group"
+                      >
+                        <span className="flex items-center justify-center space-x-2">
+                          <svg className="w-4 h-4 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.5-.676-6.33-1.84C7.614 11.337 9.23 10 12 10s4.386 1.337 6.33 3.16A7.96 7.96 0 0112 15z" />
+                          </svg>
+                          <span>Resume Learning</span>
+                        </span>
+                      </button>
                     </div>
-                    <button
-                      onClick={handleContinueLearning}
-                      className="w-full px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium shadow-md hover:shadow-lg"
-                    >
-                      Resume Learning
-                    </button>
                   </div>
                 )}
               
-                {/* Enhanced Lessons Completed */}
-                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 border border-green-200 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-gray-800">Lessons Completed</h3>
-                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                      <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                  <p className="text-3xl font-bold text-green-600 mb-1">
-                    {learningProgress?.lessonsCompleted.length || 0}
-                  </p>
-                  <p className="text-sm text-gray-600">Total completed</p>
-                  <div className="mt-3 text-xs text-green-700 bg-green-200 rounded-full px-3 py-1 text-center">
-                    🏆 Great progress!
-                  </div>
-                </div>
+
 
                 {/* Enhanced Learning Streak */}
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-gray-800">Learning Streak</h3>
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                      <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                  <p className="text-3xl font-bold text-blue-600 mb-1">
-                    {learningProgress?.streakDays || 0}
-                  </p>
-                  <p className="text-sm text-gray-600">Days in a row</p>
-                  <div className="mt-3 text-xs text-blue-700 bg-blue-200 rounded-full px-3 py-1 text-center">
-                    🔥 Keep it up!
+                <div className="group relative">
+                  {/* Gradient Border Effect */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                                     <div className="relative bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-blue-100">
+                                         {/* Card Header */}
+                     <div className="flex items-center justify-between mb-4">
+                       <div className="flex items-center space-x-2">
+                         <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                           <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                             <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
+                           </svg>
+                         </div>
+                         <div>
+                           <h3 className="text-lg font-bold text-gray-800">Learning Streak</h3>
+                           <p className="text-xs text-gray-500">Consistency builds success</p>
+                         </div>
+                       </div>
+                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                     </div>
+
+                                         {/* Streak Display */}
+                     <div className="text-center">
+                       <div className="relative inline-block mb-3">
+                         <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                           {learningProgress?.streakDays || 0}
+                         </div>
+                         <div className="absolute -top-1 -right-1">
+                           <div className="w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                             <span className="text-white text-sm">🔥</span>
+                           </div>
+                         </div>
+                       </div>
+                       <p className="text-gray-600 font-medium text-sm">
+                         {(learningProgress?.streakDays || 0) === 1 ? 'Day in a row' : 'Days in a row'}
+                       </p>
+                       
+                       {/* Compact Streak Motivation */}
+                       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-100 mt-3">
+                         <p className="text-xs text-blue-700 font-medium text-center">
+                           {(learningProgress?.streakDays || 0) >= 7 ? '🎯 Amazing dedication!' : 
+                            (learningProgress?.streakDays || 0) >= 3 ? '🎯 Great momentum!' : 
+                            '🎯 Keep it up!'}
+                         </p>
+                       </div>
+                     </div>
                   </div>
                 </div>
 
-                {/* Enhanced Total Time */}
-                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-gray-800">Time Learned</h3>
-                    <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                {/* Compact Motivational Footer */}
+                <div className="text-center pt-6 border-t border-gray-200/50 mt-6">
+                  <div className="flex items-center justify-center space-x-4 text-xs text-gray-600 mb-2">
+                    <div className="flex items-center space-x-1">
+                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                      <span>Active</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                      <span>Tracked</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse"></div>
+                      <span>Aligned</span>
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-purple-600 mb-1">
-                    {Math.round((learningProgress?.totalTimeSpentMinutes || 0) / 60) || 0}h
+                  <p className="text-gray-500 text-xs">
+                    🌟 Building a brighter future
                   </p>
-                  <p className="text-sm text-gray-600">Total hours</p>
-                  <div className="mt-3 text-xs text-purple-700 bg-purple-200 rounded-full px-3 py-1 text-center">
-                    ⏰ Time invested
-                  </div>
                 </div>
+
               </div>
             )}
           </div>

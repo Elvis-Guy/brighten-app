@@ -10,9 +10,10 @@ import { useAppContext } from '@/context/AppContext';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import { curriculumContent } from '@/data/curriculumData';
 import curriculumData from '@/curriculum_content.json';
-import { callLocalSimplificationAPI } from '@/lib/api';
+import { callSimplificationAPI } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import TextToSpeech from '@/components/ui/TextToSpeech';
+import APIDebugger from '@/components/ui/APIDebugger';
 import QuizComponent from '@/components/ui/QuizComponent';
 import QuizResults from '@/components/ui/QuizResults';
 import { getQuizByTopic } from '@/data/sampleQuizzes';
@@ -288,7 +289,7 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
 
 
   const handleGenerateSimplifiedText = async () => {
-    const simplifiedObj = await callLocalSimplificationAPI(selectedLesson.content.original, setLoadingText, console.warn);
+    const simplifiedObj = await callSimplificationAPI(selectedLesson.content.original, setLoadingText, console.warn);
     if (simplifiedObj && typeof simplifiedObj === 'object') {
       setSelectedLesson(prev => {
         if (prev) {
@@ -471,6 +472,9 @@ const ContentPage: React.FC<ContentPageProps> = ({ params }) => {
   return (
     <ProtectedRoute>
       <div className="p-6 md:p-10">
+        {/* Temporary API Debugger - Remove after fixing server */}
+        <APIDebugger />
+        
         {/* Header with Back Button */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">

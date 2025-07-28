@@ -191,6 +191,24 @@ const SignInPage: React.FC = () => {
             </Link>
           </p>
         </div>
+
+        {/* Privacy & Terms Links */}
+        <div className="text-center space-y-2">
+          <p className="text-xs text-gray-500">
+            By using Brighten, you agree to our learning community guidelines
+          </p>
+          <div className="flex justify-center space-x-4">
+            <Link href="/privacy" target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-gray-500 hover:text-orange-500 transition-colors duration-200">
+              Privacy Policy
+            </Link>
+            <span className="text-xs text-gray-300">•</span>
+            <Link href="/terms" target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-gray-500 hover:text-orange-500 transition-colors duration-200">
+              Terms of Service
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

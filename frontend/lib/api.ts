@@ -20,14 +20,18 @@
 // ============================================================================
 import type { CurriculumSubject } from '@/types';
 
-export const callLocalSimplificationAPI = async (
+export const callSimplificationAPI = async (
   text: string,
   setLoadingText: React.Dispatch<React.SetStateAction<string>>,
   customAlert: (message: string) => void
 ): Promise<Record<string, unknown> | null> => {
-  setLoadingText('Simplifying text with local model...');
+  setLoadingText('Simplifying text with AI...');
   try {
-    const response = await fetch('http://localhost:5001/simplify', {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    console.log(`🚀 Making API request to: ${apiUrl}/simplify`);
+    console.log(`📝 Text length: ${text.length} characters`);
+    
+    const response = await fetch(`${apiUrl}/simplify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,20 +41,57 @@ export const callLocalSimplificationAPI = async (
       })
     });
 
+    console.log(`📊 API Response status: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Try to get more error details from the response
+      let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorResponse = await response.text();
+        console.error(`❌ API Error Response:`, errorResponse);
+        errorDetails = errorResponse || errorDetails;
+      } catch (parseError) {
+        console.warn('Could not parse error response:', parseError);
+      }
+      
+      throw new Error(`API Error: ${errorDetails}`);
     }
 
     const result = await response.json();
+    console.log(`✅ API Success:`, result);
     setLoadingText('');
     return result;
   } catch (error) {
-    console.error("Error calling local simplification API:", error);
+    console.error("Error calling simplification API:", error);
     setLoadingText('');
+    
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      customAlert("Could not connect to local simplification API. Make sure it's running on http://localhost:5001");
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      customAlert(`🌐 Network Error: Could not connect to the API at ${apiUrl}. Please check your internet connection and try again.`);
+    } else if (error instanceof Error && error.message.includes('MODEL_NOT_LOADED')) {
+      customAlert(`🤖 Server Starting: The AI model is still loading on the server. Please wait a moment and try again.`);
+    } else if (error instanceof Error && error.message.includes('MODEL_NOT_READY')) {
+      customAlert(`🤖 AI Model Not Ready: The simplification model is still warming up. Please wait a moment and try again.`);
+    } else if (error instanceof Error && error.message.includes('PROCESSING_ERROR')) {
+      // Parse the error to get more details
+      try {
+        const errorMatch = error.message.match(/{"code":"PROCESSING_ERROR","error":"([^"]+)"/);
+        const detailedError = errorMatch ? errorMatch[1] : error.message;
+        
+        if (detailedError.includes('NoneType') && detailedError.includes('is_ready')) {
+          customAlert(`🚨 Server Configuration Issue: The AI model failed to initialize on the server. This is usually due to:\n\n• Missing model files\n• Incorrect environment variables\n• Missing dependencies\n\nPlease check your Render deployment logs and ensure all required environment variables and dependencies are configured.`);
+        } else {
+          customAlert(`🚨 Processing Error: ${detailedError}\n\nThis appears to be a server-side issue. Please check the deployment logs.`);
+        }
+      } catch (parseError) {
+        customAlert(`🚨 Server Error: There was an issue processing your request on the server. Please check the deployment logs.`);
+      }
+    } else if (error instanceof Error && error.message.includes('500')) {
+      customAlert(`🚨 Server Error: The API server is experiencing issues. This might be due to:\n• Server startup problems\n• Missing dependencies\n• Resource limitations\n\nPlease check your Render deployment logs.`);
+    } else if (error instanceof Error) {
+      customAlert(`❌ API Error: ${error.message}`);
     } else {
-      customAlert("An error occurred during text simplification. Please try again.");
+      customAlert("An unexpected error occurred during text simplification. Please try again.");
     }
     return null;
   }
@@ -347,5 +388,6 @@ export const generateVisualizationReplicate = async (
   }
 };
 
-// Legacy function (keep for backward compatibility)
+// Legacy functions (keep for backward compatibility)
 export const generateVisualization = generateVisualizationHF;
+export const callLocalSimplificationAPI = callSimplificationAPI;

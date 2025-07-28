@@ -17,6 +17,7 @@ const SignUpPage: React.FC = () => {
     password: '',
     confirmPassword: ''
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { signUp, signInWithGoogle, authState } = useAppContext();
@@ -42,6 +43,12 @@ const SignUpPage: React.FC = () => {
     setError('');
 
     // Validation
+    if (!acceptedTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy to create an account.');
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match.');
       setIsLoading(false);
@@ -66,6 +73,11 @@ const SignUpPage: React.FC = () => {
   };
 
   const handleGoogleSignUp = async () => {
+    if (!acceptedTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy to create an account.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
@@ -168,24 +180,57 @@ const SignUpPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center">
-              <input
-                id="agree-terms"
-                name="agree-terms"
-                type="checkbox"
-                required
-                className="h-4 w-4 text-orange-500 focus:ring-orange-400 border-gray-300 rounded"
-              />
-              <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-700">
-                I agree to the{' '}
-                <a href="#" className="text-orange-500 hover:text-orange-600 transition-colors duration-200">
-                  Terms of Service
-                </a>
-                {' '}and{' '}
-                <a href="#" className="text-orange-500 hover:text-orange-600 transition-colors duration-200">
-                  Privacy Policy
-                </a>
-              </label>
+            {/* Terms and Privacy Policy Agreement */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  📋 Important: Please Read Before Continuing
+                </h3>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  By creating a Brighten account, you agree to our terms and privacy practices. 
+                  We encourage you to read these documents to understand how we protect your information 
+                  and what we expect from our learning community.
+                </p>
+                
+                <div className="flex flex-col space-y-2">
+                  <Link href="/terms" target="_blank" rel="noopener noreferrer" 
+                        className="inline-flex items-center text-orange-600 hover:text-orange-800 font-medium text-sm">
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    📜 Read our Terms of Service (opens in new tab)
+                  </Link>
+                  <Link href="/privacy" target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center text-orange-600 hover:text-orange-800 font-medium text-sm">
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    🔒 Read our Privacy Policy (opens in new tab)
+                  </Link>
+                </div>
+
+                <div className="flex items-start space-x-3 mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                  <input
+                    id="agree-terms"
+                    name="agree-terms"
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-1 h-5 w-5 text-orange-500 focus:ring-orange-400 border-gray-300 rounded"
+                  />
+                  <label htmlFor="agree-terms" className="block text-sm text-gray-700 leading-relaxed">
+                    <span className="font-semibold">✅ I confirm that I have read and agree to:</span>
+                    <br />
+                    • The Terms of Service (how to use Brighten properly)
+                    <br />
+                    • The Privacy Policy (how we protect your information)
+                    <br />
+                    <span className="text-xs text-gray-600 mt-1 block">
+                      Required - You must agree to these terms to create an account
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <button
