@@ -133,7 +133,7 @@ const AboutPage: React.FC = () => {
               <div className="prose prose-lg max-w-none text-gray-600">
                 <p className="mb-6 text-lg leading-relaxed">
                   Brighten was born from a simple yet powerful observation: too many brilliant students struggle not because they lack 
-                  ability, but because educational content isn't presented in a way that resonates with their 
+                  ability, but because educational content isn&apos;t presented in a way that resonates with their 
                   individual learning styles, particularly those with dyslexia.
                 </p>
                 <p className="mb-6 text-lg leading-relaxed">
@@ -154,21 +154,12 @@ const AboutPage: React.FC = () => {
                 <h3 className="text-2xl font-bold text-gray-800 mb-6">Our Impact</h3>
                 <div className="space-y-6">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold">📚</span>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-blue-600">1000+</div>
-                      <div className="text-gray-600">Students Supported</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
                       <span className="text-white font-bold">🎯</span>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-green-600">95%</div>
-                      <div className="text-gray-600">Improved Comprehension</div>
+                      <div className="text-2xl font-bold text-green-600">AI-Powered</div>
+                      <div className="text-gray-600">Text Simplification</div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
@@ -177,7 +168,16 @@ const AboutPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-purple-600">24/7</div>
-                      <div className="text-gray-600">AI-Powered Support</div>
+                      <div className="text-gray-600">Learning Support</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">♿</span>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">Inclusive</div>
+                      <div className="text-gray-600">Dyslexia-Friendly Design</div>
                     </div>
                   </div>
                 </div>
@@ -194,11 +194,11 @@ const AboutPage: React.FC = () => {
             <h2 className="text-4xl font-bold text-gray-800 mb-4 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Meet Our Team</h2>
             <div className="w-16 h-1 bg-gradient-to-r from-orange-500 to-red-500 mx-auto mb-6 rounded-full"></div>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              A passionate group of innovators dedicated to transforming education through technology and empathy.
+              Meet the founder and creator behind Brighten, dedicated to transforming education through technology and empathy.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex justify-center">
             {/* Enhanced Team Member 1 */}
             <div className={`text-center group transform transition-all duration-500 hover:scale-105 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ animationDelay: '600ms' }}>
               <div className="bg-gradient-to-br from-white to-orange-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-orange-100">
@@ -208,62 +208,25 @@ const AboutPage: React.FC = () => {
                   </div>
                   <div className="absolute inset-0 w-24 h-24 bg-gradient-to-br from-orange-300 to-orange-500 rounded-full mx-auto animate-ping opacity-20 group-hover:opacity-30"></div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Elvis Bakunzi</h3>
-                <p className="text-orange-500 font-medium mb-3">Lead Developer & Founder</p>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Elvis Guy Bakunzi</h3>
+                <p className="text-orange-500 font-medium mb-3">Founder & Creator</p>
                 <p className="text-gray-600 text-sm leading-relaxed">
-                  Passionate about creating technology that transforms education and empowers learners worldwide. 
-                  Dedicated to building inclusive learning experiences.
+                  Creator and sole developer of Brighten, passionate about using AI and technology to make education 
+                  more accessible for students with dyslexia. Handles everything from development to AI model training 
+                  and user experience design.
                 </p>
-                <div className="mt-4 flex justify-center space-x-2">
+                <div className="mt-4 flex justify-center space-x-2 flex-wrap gap-2">
                   <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">Full-Stack Development</span>
-                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">AI Integration</span>
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">AI & Machine Learning</span>
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">UX Design</span>
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">Product Strategy</span>
                 </div>
               </div>
             </div>
 
-            {/* Enhanced Team Member 2 */}
-            <div className={`text-center group transform transition-all duration-500 hover:scale-105 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ animationDelay: '800ms' }}>
-              <div className="bg-gradient-to-br from-white to-blue-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100">
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                    <span className="text-white text-2xl font-bold">🤖</span>
-                  </div>
-                  <div className="absolute inset-0 w-24 h-24 bg-gradient-to-br from-blue-300 to-blue-500 rounded-full mx-auto animate-ping opacity-20 group-hover:opacity-30"></div>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">AI Research Team</h3>
-                <p className="text-blue-500 font-medium mb-3">Technology Core</p>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Dedicated AI specialists working to make educational content more accessible, engaging, 
-                  and personalized for students with diverse learning needs.
-                </p>
-                <div className="mt-4 flex justify-center space-x-2">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">Machine Learning</span>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">NLP</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Enhanced Team Member 3 */}
-            <div className={`text-center group transform transition-all duration-500 hover:scale-105 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ animationDelay: '1000ms' }}>
-              <div className="bg-gradient-to-br from-white to-green-50 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-green-100">
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full mx-auto flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                    <span className="text-white text-2xl font-bold">👨‍🏫</span>
-                  </div>
-                  <div className="absolute inset-0 w-24 h-24 bg-gradient-to-br from-green-300 to-green-500 rounded-full mx-auto animate-ping opacity-20 group-hover:opacity-30"></div>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Education Advisors</h3>
-                <p className="text-green-500 font-medium mb-3">Curriculum Experts</p>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Experienced educators ensuring our platform meets real classroom needs, learning objectives, 
-                  and accessibility standards for all students.
-                </p>
-                <div className="mt-4 flex justify-center space-x-2">
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">Curriculum Design</span>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">Accessibility</span>
-                </div>
-              </div>
-            </div>
+
+
           </div>
         </div>
       </div>
@@ -298,7 +261,7 @@ const AboutPage: React.FC = () => {
                 <h3 className="text-2xl font-bold text-gray-800">Innovation</h3>
               </div>
               <p className="text-gray-600 leading-relaxed">
-                We continuously push the boundaries of what's possible in educational technology, 
+                We continuously push the boundaries of what&apos;s possible in educational technology, 
                 leveraging AI to create transformative learning experiences.
               </p>
             </div>
@@ -324,7 +287,7 @@ const AboutPage: React.FC = () => {
                 <h3 className="text-2xl font-bold text-gray-800">Compassion</h3>
               </div>
               <p className="text-gray-600 leading-relaxed">
-                We approach every student's journey with empathy and understanding, 
+                We approach every student&apos;s journey with empathy and understanding, 
                 recognizing that learning is deeply personal and unique to each individual.
               </p>
             </div>
