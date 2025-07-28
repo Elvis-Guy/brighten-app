@@ -18,8 +18,8 @@ Brighten is an innovative learning platform specifically designed to support dys
 [![YouTube Demo](https://img.shields.io/badge/YouTube-Initial_Demo-red?logo=youtube)](https://www.youtube.com/watch?v=eVwP6MtANHs)
 
 ### Final Version of the Product
-[![YouTube Demo](https://img.shields.io/badge/YouTube-Final_Version-red?logo=youtube)](#)
-<!-- TODO: Add the final version demo link here -->
+[![YouTube Demo](https://img.shields.io/badge/YouTube-Final_Version-red?logo=youtube)](https://youtu.be/GOq-gUS8ZoE)
+*Complete demonstration of Brighten's AI-powered learning platform for dyslexic learners*
 
 ## ✨ Key Features
 
