@@ -546,24 +546,159 @@ export const callHuggingFaceAPI = async (
   return null;
 };
 
-// Smart API caller that tries both approaches
+// OpenAI API fallback
+export const callOpenAIAPI = async (
+  text: string,
+  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
+  customAlert: (message: string) => void
+): Promise<Record<string, unknown> | null> => {
+  setLoadingText('Simplifying text with OpenAI...');
+  
+  const openaiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+  if (!openaiKey) {
+    console.log('❌ OpenAI API key not found in environment');
+    return null;
+  }
+  
+  try {
+    console.log('🧠 Making OpenAI API request');
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant that simplifies text for people with dyslexia. Make the text easier to read by using simpler words, shorter sentences, and clearer structure. Maintain the original meaning but make it more accessible.'
+          },
+          {
+            role: 'user',
+            content: `Please simplify this text for better readability: ${text}`
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const simplifiedText = data.choices[0]?.message?.content || text;
+    
+    return {
+      simplified_text: simplifiedText,
+      original_text: text,
+      source: 'openai'
+    };
+    
+  } catch (error) {
+    console.error('❌ OpenAI API failed:', error);
+    return null;
+  }
+};
+
+// Local text processing fallback (always works)
+export const callLocalSimplification = async (
+  text: string,
+  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
+  customAlert: (message: string) => void
+): Promise<Record<string, unknown> | null> => {
+  setLoadingText('Applying local text simplification...');
+  
+  try {
+    console.log('🏠 Using local text simplification');
+    
+    // Simple text simplification rules
+    let simplified = text
+      // Break long sentences
+      .replace(/([.!?])\s+/g, '$1\n\n')
+      // Add spacing around punctuation for readability
+      .replace(/([,;:])/g, '$1 ')
+      // Replace common complex words with simpler ones
+      .replace(/\bmagnificent\b/gi, 'great')
+      .replace(/\butilize\b/gi, 'use')
+      .replace(/\bdemonstrate\b/gi, 'show')
+      .replace(/\binformation\b/gi, 'info')
+      .replace(/\badditionally\b/gi, 'also')
+      .replace(/\bfurthermore\b/gi, 'also')
+      .replace(/\bnevertheless\b/gi, 'but')
+      .replace(/\bconsequently\b/gi, 'so')
+      // Remove extra spaces
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Add helpful formatting
+    simplified = `📖 Simplified Text:\n\n${simplified}`;
+    
+    return {
+      simplified_text: simplified,
+      original_text: text,
+      source: 'local',
+      note: 'This is a basic local simplification. For better results, try when the AI services are available.'
+    };
+    
+  } catch (error) {
+    console.error('❌ Local simplification failed:', error);
+    return {
+      simplified_text: text,
+      original_text: text,
+      source: 'fallback',
+      note: 'Unable to process text. Showing original content.'
+    };
+  }
+};
+
+// Enhanced smart API caller with multiple fallbacks
 export const callBestAvailableAPI = async (
   text: string,
   setLoadingText: React.Dispatch<React.SetStateAction<string>>,
   customAlert: (message: string) => void
 ): Promise<Record<string, unknown> | null> => {
-  // First try our custom API
   console.log('🎯 Trying custom API first...');
-  const customResult = await callSimplificationAPI(text, setLoadingText, () => {});
   
+  // Try custom API first
+  const customResult = await callSimplificationAPI(text, setLoadingText, customAlert);
   if (customResult) {
     console.log('✅ Custom API succeeded');
     return customResult;
   }
   
-  // If custom API fails, try Hugging Face direct
   console.log('🤗 Falling back to Hugging Face direct API...');
-  customAlert('🔄 Primary API unavailable, trying Hugging Face directly...');
   
-  return await callHuggingFaceAPI(text, setLoadingText, customAlert);
+  // Try Hugging Face API second
+  const hfResult = await callHuggingFaceAPI(text, setLoadingText, customAlert);
+  if (hfResult) {
+    console.log('✅ Hugging Face API succeeded');
+    return hfResult;
+  }
+  
+  console.log('🧠 Trying OpenAI API as third option...');
+  
+  // Try OpenAI API third
+  const openaiResult = await callOpenAIAPI(text, setLoadingText, customAlert);
+  if (openaiResult) {
+    console.log('✅ OpenAI API succeeded');
+    return openaiResult;
+  }
+  
+  console.log('🏠 Using local text processing as final fallback...');
+  
+  // Always have local fallback
+  const localResult = await callLocalSimplification(text, setLoadingText, customAlert);
+  
+  // Show user what happened
+  customAlert(
+    'AI services are currently unavailable. Using local text processing. ' +
+    'For better results, try again later when AI services are restored.'
+  );
+  
+  return localResult;
 };
