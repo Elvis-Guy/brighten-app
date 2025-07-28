@@ -9,8 +9,9 @@ export interface UserPreferences {
     backgroundColor: string;
     textColor: string;
     highContrastMode: boolean;
-    voice: 'female' | 'male';
+    voice: string;
     speakingRate: number;
+    autoPlay: boolean;
     language: string;
   }
   

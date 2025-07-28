@@ -41,16 +41,16 @@ const ProfilePage: React.FC = () => {
 
   const handleDisplayNameChange = (value: string) => {
     setDisplayName(value);
-    setDirty(value !== originalDisplayName || password || newPassword);
+    setDirty(value !== originalDisplayName || Boolean(password) || Boolean(newPassword));
   };
 
   const handlePasswordChange = (field: 'password' | 'newPassword', value: string) => {
     if (field === 'password') {
       setPassword(value);
-      setDirty(displayName !== originalDisplayName || value || newPassword);
+      setDirty(displayName !== originalDisplayName || Boolean(value) || Boolean(newPassword));
     } else {
       setNewPassword(value);
-      setDirty(displayName !== originalDisplayName || password || value);
+      setDirty(displayName !== originalDisplayName || Boolean(password) || Boolean(value));
     }
   };
 

@@ -101,7 +101,7 @@ const TextToSpeech: React.FC<TextToSpeechProps> = ({
       ]
     };
 
-    const priorities = voicePriorities[preferredGender] || voicePriorities.female;
+    const priorities = voicePriorities[preferredGender as keyof typeof voicePriorities] || voicePriorities.female;
 
     // Try to find the best match by priority
     for (const priority of priorities) {

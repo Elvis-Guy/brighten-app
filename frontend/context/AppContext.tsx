@@ -67,6 +67,7 @@ const defaultPreferences: UserPreferences = {
   highContrastMode: false,
   voice: 'female',
   speakingRate: 1,
+  autoPlay: false,
   language: 'English',
 };
 

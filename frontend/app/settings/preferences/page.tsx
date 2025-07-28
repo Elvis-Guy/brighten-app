@@ -187,12 +187,12 @@ const PreferencesPage: React.FC = () => {
                     min={0.5}
                     max={2}
                     step={0.1}
-                    value={form.speechRate}
-                    onChange={e => handleChange('speechRate', Number(e.target.value))}
+                    value={form.speakingRate}
+                    onChange={e => handleChange('speakingRate', Number(e.target.value))}
                   />
                   <div className="flex justify-between text-sm text-gray-500 mt-1">
                     <span>Slow</span>
-                    <span className="font-semibold text-blue-600">{form.speechRate}x</span>
+                    <span className="font-semibold text-blue-600">{form.speakingRate}x</span>
                     <span>Fast</span>
                   </div>
                 </div>
