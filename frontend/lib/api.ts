@@ -27,7 +27,9 @@ export const callSimplificationAPI = async (
 ): Promise<Record<string, unknown> | null> => {
   setLoadingText('Simplifying text with AI...');
   
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  // Use localhost directly for local development
+  // For production, you'll need to deploy the API or use a different endpoint
+  const apiUrl = 'http://localhost:5001';
   const maxRetries = 2;
   let lastError: Error | null = null;
   
@@ -36,31 +38,30 @@ export const callSimplificationAPI = async (
       console.log(`🚀 Making API request to: ${apiUrl}/simplify (attempt ${attempt}/${maxRetries})`);
       console.log(`📝 Text length: ${text.length} characters`);
       
-      // First check if the API is healthy
+      // Health check first
       if (attempt === 1) {
-        setLoadingText('Checking API status...');
+        setLoadingText('Checking local API status...');
         try {
           const healthResponse = await fetch(`${apiUrl}/health`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+              'Content-Type': 'application/json',
+            },
           });
           
-          if (!healthResponse.ok) {
+          if (healthResponse.ok) {
             const healthData = await healthResponse.json();
-            console.warn('⚠️ API health check failed:', healthData);
-            
-            if (healthData.error === "Model not loaded") {
-              setLoadingText('Model is loading, please wait...');
-              customAlert('🔄 The AI model is currently loading. This may take a moment. Please try again in 30 seconds.');
-              return null;
+            if (!healthData.model_loaded) {
+              console.log('⚠️ Model not loaded yet, but proceeding with request');
+              customAlert('🔄 The AI model is loading. This may take a moment on first use.');
             }
           }
         } catch (healthError) {
-          console.warn('Health check failed, proceeding with request:', healthError);
+          console.log('Health check failed, proceeding with request:', healthError);
         }
       }
-      
-      setLoadingText(`Simplifying text with AI... (attempt ${attempt})`);
+
+      setLoadingText(`Simplifying with AI... (attempt ${attempt})`);
       
       const response = await fetch(`${apiUrl}/simplify`, {
         method: 'POST',
@@ -69,71 +70,55 @@ export const callSimplificationAPI = async (
         },
         body: JSON.stringify({
           text: text,
-          structured: true
-        })
+          max_length: 256,
+          min_length: 20,
+          num_beams: 3,
+          length_penalty: 0.8,
+          early_stopping: true,
+          do_sample: false,
+          no_repeat_ngram_size: 2
+        }),
       });
 
       console.log(`📊 API Response status: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
-        // Try to get more error details from the response
-        let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorResponse = await response.json();
-          console.error(`❌ API Error Response:`, errorResponse);
-          
-          if (errorResponse.code === 'MODEL_NOT_LOADED' || errorResponse.code === 'MODEL_NOT_READY') {
-            setLoadingText('');
-            customAlert('🔄 The AI model is still loading. Please wait a moment and try again.');
-            return null;
+        const errorData = await response.json().catch(() => null);
+        
+        if (response.status === 503 && errorData?.error?.includes('loading')) {
+          if (attempt === 1) {
+            setLoadingText('Model is loading locally, waiting...');
+            await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+            continue;
           }
-          
-          errorDetails = errorResponse.error || errorDetails;
-        } catch (parseError) {
-          console.warn('Could not parse error response:', parseError);
         }
         
-        throw new Error(`API Error: ${errorDetails}`);
+        throw new Error(`Local API Error: ${response.status} - ${errorData?.error || response.statusText}`);
       }
 
       const result = await response.json();
-      console.log(`✅ API Success:`, result);
+      console.log(`✅ Local API Success:`, result);
+
       setLoadingText('');
       return result;
       
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`❌ API request failed (attempt ${attempt}):`, lastError);
+      console.error(`❌ Local API request failed (attempt ${attempt}):`, lastError);
       
-      // Check if it's a network error
-      if (lastError.message.includes('Failed to fetch') || lastError.message.includes('ERR_BLOCKED_BY_CLIENT')) {
-        console.error('🌐 Network Error: Could not connect to the API at', apiUrl, '. Please check your internet connection and try again.');
-        
-        if (attempt === maxRetries) {
-          setLoadingText('');
-          customAlert(`🌐 Network Error: Could not connect to the API. Please check your internet connection and try again. (${lastError.message})`);
-          return null;
-        }
-        
-        // Wait before retrying network errors
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
-        continue;
-      }
-      
-      // For other errors, retry only once more
       if (attempt === maxRetries) {
         setLoadingText('');
-        customAlert(`❌ Simplification failed: ${lastError.message}`);
+        customAlert(`❌ Local API failed: ${lastError.message}`);
         return null;
       }
       
       // Brief wait before retry
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
   
   setLoadingText('');
-  customAlert(`❌ All attempts failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  customAlert(`❌ All local API attempts failed. Last error: ${lastError?.message || 'Unknown error'}`);
   return null;
 };
 
@@ -432,177 +417,35 @@ export const generateVisualizationReplicate = async (
 export const generateVisualization = generateVisualizationHF;
 export const callLocalSimplificationAPI = callSimplificationAPI;
 
-// Alternative: Direct Hugging Face Inference API
-export const callHuggingFaceAPI = async (
+// Simplified smart API caller with localhost + local fallback
+export const callBestAvailableAPI = async (
   text: string,
   setLoadingText: React.Dispatch<React.SetStateAction<string>>,
   customAlert: (message: string) => void
 ): Promise<Record<string, unknown> | null> => {
-  setLoadingText('Simplifying text with Hugging Face AI...');
+  console.log('🎯 Trying local API first...');
   
-  const maxRetries = 2;
-  let lastError: Error | null = null;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`🤗 Making Hugging Face API request (attempt ${attempt}/${maxRetries})`);
-      console.log(`📝 Text length: ${text.length} characters`);
-      
-      setLoadingText(`Simplifying with Hugging Face AI... (attempt ${attempt})`);
-      
-      const response = await fetch(
-        "https://api-inference.huggingface.co/models/elvisbakunzi/dyslexia-friendly-text-simplifier",
-        {
-          headers: {
-            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          method: "POST",
-          body: JSON.stringify({
-            inputs: text,
-            parameters: {
-              max_length: 256,
-              min_length: 20,
-              num_beams: 3,
-              length_penalty: 0.8,
-              early_stopping: true,
-              do_sample: false,
-              no_repeat_ngram_size: 2
-            }
-          }),
-        }
-      );
-
-      console.log(`📊 Hugging Face API Response status: ${response.status} ${response.statusText}`);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        
-        if (response.status === 503 && errorData?.error?.includes('loading')) {
-          if (attempt === 1) {
-            setLoadingText('Model is loading on Hugging Face, waiting...');
-            await new Promise(resolve => setTimeout(resolve, 20000)); // Wait 20 seconds
-            continue;
-          }
-        }
-        
-        throw new Error(`Hugging Face API Error: ${response.status} - ${errorData?.error || response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log(`✅ Hugging Face API Success:`, result);
-
-      // Transform HF response to match our expected format
-      const simplifiedText = Array.isArray(result) && result[0]?.generated_text 
-        ? result[0].generated_text 
-        : typeof result === 'string' 
-        ? result 
-        : 'Unable to process text';
-
-      // Calculate metrics
-      const originalWords = text.split(' ').length;
-      const simplifiedWords = simplifiedText.split(' ').length;
-      const wordReduction = ((originalWords - simplifiedWords) / originalWords * 100);
-
-      const transformedResult = {
-        success: true,
-        original: text,
-        simplified: simplifiedText,
-        metrics: {
-          processing_time: 0, // HF doesn't provide this
-          original_words: originalWords,
-          simplified_words: simplifiedWords,
-          word_reduction_percent: Math.round(wordReduction),
-          characters_original: text.length,
-          characters_simplified: simplifiedText.length
-        },
-        model: {
-          source: "huggingface_direct",
-          model_id: "elvisbakunzi/dyslexia-friendly-text-simplifier"
-        },
-        timestamp: Date.now() / 1000
-      };
-
-      setLoadingText('');
-      return transformedResult;
-      
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`❌ Hugging Face API request failed (attempt ${attempt}):`, lastError);
-      
-      if (attempt === maxRetries) {
-        setLoadingText('');
-        customAlert(`❌ Hugging Face simplification failed: ${lastError.message}`);
-        return null;
-      }
-      
-      // Brief wait before retry
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
+  // Try localhost API first (works in development)
+  const customResult = await callSimplificationAPI(text, setLoadingText, customAlert);
+  if (customResult) {
+    console.log('✅ Local API succeeded');
+    return customResult;
   }
   
-  setLoadingText('');
-  customAlert(`❌ All Hugging Face attempts failed. Last error: ${lastError?.message || 'Unknown error'}`);
-  return null;
-};
-
-// OpenAI API fallback
-export const callOpenAIAPI = async (
-  text: string,
-  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
-  customAlert: (message: string) => void
-): Promise<Record<string, unknown> | null> => {
-  setLoadingText('Simplifying text with OpenAI...');
+  console.log('🏠 Using local text processing as fallback...');
   
-  const openaiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-  if (!openaiKey) {
-    console.log('❌ OpenAI API key not found in environment');
-    return null;
-  }
+  // Always have local fallback
+  const localResult = await callLocalSimplification(text, setLoadingText, customAlert);
   
-  try {
-    console.log('🧠 Making OpenAI API request');
+  // Show user what happened
+  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+  const message = isProduction 
+    ? 'AI service is not available in production. Using local text processing.' 
+    : 'Local AI service is not running. Using local text processing. Start your API server with: cd backend && python api.py';
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant that simplifies text for people with dyslexia. Make the text easier to read by using simpler words, shorter sentences, and clearer structure. Maintain the original meaning but make it more accessible.'
-          },
-          {
-            role: 'user',
-            content: `Please simplify this text for better readability: ${text}`
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.3
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const simplifiedText = data.choices[0]?.message?.content || text;
-    
-    return {
-      simplified_text: simplifiedText,
-      original_text: text,
-      source: 'openai'
-    };
-    
-  } catch (error) {
-    console.error('❌ OpenAI API failed:', error);
-    return null;
-  }
+  customAlert(message);
+  
+  return localResult;
 };
 
 // Local text processing fallback (always works)
@@ -642,7 +485,7 @@ export const callLocalSimplification = async (
       simplified_text: simplified,
       original_text: text,
       source: 'local',
-      note: 'This is a basic local simplification. For better results, try when the AI services are available.'
+      note: 'This is a basic local simplification. For AI-powered results, try again when the service is ready.'
     };
     
   } catch (error) {
@@ -654,51 +497,4 @@ export const callLocalSimplification = async (
       note: 'Unable to process text. Showing original content.'
     };
   }
-};
-
-// Enhanced smart API caller with multiple fallbacks
-export const callBestAvailableAPI = async (
-  text: string,
-  setLoadingText: React.Dispatch<React.SetStateAction<string>>,
-  customAlert: (message: string) => void
-): Promise<Record<string, unknown> | null> => {
-  console.log('🎯 Trying custom API first...');
-  
-  // Try custom API first
-  const customResult = await callSimplificationAPI(text, setLoadingText, customAlert);
-  if (customResult) {
-    console.log('✅ Custom API succeeded');
-    return customResult;
-  }
-  
-  console.log('🤗 Falling back to Hugging Face direct API...');
-  
-  // Try Hugging Face API second
-  const hfResult = await callHuggingFaceAPI(text, setLoadingText, customAlert);
-  if (hfResult) {
-    console.log('✅ Hugging Face API succeeded');
-    return hfResult;
-  }
-  
-  console.log('🧠 Trying OpenAI API as third option...');
-  
-  // Try OpenAI API third
-  const openaiResult = await callOpenAIAPI(text, setLoadingText, customAlert);
-  if (openaiResult) {
-    console.log('✅ OpenAI API succeeded');
-    return openaiResult;
-  }
-  
-  console.log('🏠 Using local text processing as final fallback...');
-  
-  // Always have local fallback
-  const localResult = await callLocalSimplification(text, setLoadingText, customAlert);
-  
-  // Show user what happened
-  customAlert(
-    'AI services are currently unavailable. Using local text processing. ' +
-    'For better results, try again later when AI services are restored.'
-  );
-  
-  return localResult;
 };
