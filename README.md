@@ -12,6 +12,26 @@
 
 Brighten is an innovative learning platform specifically designed to support dyslexic learners. The application combines advanced machine learning with intuitive user interface design to create an accessible, personalized educational experience. Now featuring a production-ready backend API and enhanced ML capabilities deployed on Hugging Face.
 
+## ⚠️ Important Notice
+
+**🚨 REQUIRED: Local API Setup**
+
+To use the full functionality of Brighten, **you MUST run the backend API locally** before starting the frontend application. The AI model used for text simplification is too large to host on free hosting services, so it requires local execution.
+
+### Quick Start Options:
+
+**Option 1: Full Local Setup (Recommended for Development)**
+1. Run the backend API locally: `cd backend && python api.py`
+2. Run the frontend locally: `cd frontend && npm run dev`
+3. Access the app at [http://localhost:3000](http://localhost:3000)
+
+**Option 2: Use Hosted Frontend + Local API**
+1. Run the backend API locally: `cd backend && python api.py` (runs on port 5001)
+2. Use the hosted frontend: [https://brighten-app.vercel.app/](https://brighten-app.vercel.app/)
+3. The hosted frontend will connect to your local API automatically
+
+> 📌 **Note:** We are actively working on finding a solution to host the AI model in the cloud. This local setup requirement is temporary.
+
 ## 📺 Video Demos
 
 ### Initial Model Implementation
@@ -211,14 +231,24 @@ model/
 
 ### Running the Application
 
-1. **Start the backend API:**
+> ⚠️ **CRITICAL:** The backend API **MUST** be started first and running before the frontend will work properly!
+
+1. **Start the backend API (REQUIRED FIRST STEP):**
    ```bash
    cd backend
    python api.py
-   # API runs on http://localhost:5001
+   # ✅ API runs on http://localhost:5001
+   # ✅ Wait for "Model loaded successfully" message
    ```
 
-2. **Start the frontend development server:**
+2. **Verify API is running:**
+   ```bash
+   # Test the API health endpoint
+   curl http://localhost:5001/health
+   # Should return: {"status": "healthy", "model_loaded": true}
+   ```
+
+3. **Start the frontend development server:**
    ```bash
    cd frontend
    npm dev
@@ -226,10 +256,12 @@ model/
    # Frontend runs on http://localhost:3000
    ```
 
-3. **Access the application:**
+4. **Access the application:**
    - **Frontend:** [http://localhost:3000](http://localhost:3000)
    - **API:** [http://localhost:5001](http://localhost:5001)
    - **API Health:** [http://localhost:5001/health](http://localhost:5001/health)
+
+> 🚨 **Troubleshooting:** If the frontend shows API connection errors, ensure the backend is running on port 5001 and the model has loaded successfully.
 
 ## 🎯 Usage
 
